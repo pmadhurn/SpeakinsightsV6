@@ -34,3 +34,6 @@ storage/temp/*
 *.bin
 *.pt
 *.onnx
+
+
+dta
