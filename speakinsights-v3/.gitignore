@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment
+.env
+.env.local
+
+# Build
+frontend/dist/
+frontend/build/
+*.egg-info/
+
+# Storage (keep structure, ignore content)
+storage/recordings/*
+storage/exports/*
+storage/temp/*
+!storage/**/.gitkeep
+
+# Docker
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Models (large files)
+*.bin
+*.pt
+*.onnx
