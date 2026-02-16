@@ -87,7 +87,7 @@ export function useAudioChunking({
         );
 
         await api.post(
-          `/meetings/${meetingIdRef.current}/transcribe/chunk`,
+          `/transcriptions/${meetingIdRef.current}/chunk`,
           formData,
           {
             headers: { 'Content-Type': 'multipart/form-data' },

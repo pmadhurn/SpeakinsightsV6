@@ -27,7 +27,7 @@ export const meetings = {
     api.post<CreateMeetingResponse>('/meetings', data).then((r) => r.data),
 
   list: () =>
-    api.get<Meeting[]>('/meetings').then((r) => r.data),
+    api.get<{ meetings: Meeting[] }>('/meetings').then((r) => r.data.meetings),
 
   get: (id: string) =>
     api.get<Meeting>(`/meetings/${id}`).then((r) => r.data),
@@ -57,13 +57,13 @@ export const meetings = {
 // ─── Transcriptions ───
 export const transcriptions = {
   getTranscript: (meetingId: string) =>
-    api.get<TranscriptSegment[]>(`/meetings/${meetingId}/transcript`).then((r) => r.data),
+    api.get<TranscriptSegment[]>(`/transcriptions/${meetingId}`).then((r) => r.data),
 
   getTimeline: (meetingId: string) =>
-    api.get<TranscriptTimeline>(`/meetings/${meetingId}/timeline`).then((r) => r.data),
+    api.get<TranscriptTimeline>(`/transcriptions/${meetingId}/timeline`).then((r) => r.data),
 
   search: (meetingId: string, query: string) =>
-    api.get<TranscriptSearchResult[]>(`/meetings/${meetingId}/transcript/search`, {
+    api.get<TranscriptSearchResult[]>(`/transcriptions/${meetingId}/search`, {
       params: { q: query },
     }).then((r) => r.data),
 };
@@ -71,43 +71,43 @@ export const transcriptions = {
 // ─── Summaries ───
 export const summaries = {
   generate: (meetingId: string, model?: string) =>
-    api.post<Summary>(`/meetings/${meetingId}/summarize`, { model }).then((r) => r.data),
+    api.post<Summary>(`/summaries/${meetingId}/generate`, { model }).then((r) => r.data),
 
   get: (meetingId: string) =>
-    api.get<Summary>(`/meetings/${meetingId}/summary`).then((r) => r.data),
+    api.get<Summary>(`/summaries/${meetingId}`).then((r) => r.data),
 
   getTasks: (meetingId: string) =>
-    api.get<Task[]>(`/meetings/${meetingId}/tasks`).then((r) => r.data),
+    api.get<Task[]>(`/summaries/${meetingId}/tasks`).then((r) => r.data),
 
   updateTask: (meetingId: string, taskId: string, data: Partial<Task>) =>
-    api.patch<Task>(`/meetings/${meetingId}/tasks/${taskId}`, data).then((r) => r.data),
+    api.put<Task>(`/summaries/tasks/${taskId}`, data).then((r) => r.data),
 
   getSentiment: (meetingId: string) =>
-    api.get<SentimentData>(`/meetings/${meetingId}/sentiment`).then((r) => r.data),
+    api.get<SentimentData>(`/summaries/${meetingId}/sentiment`).then((r) => r.data),
 };
 
 // ─── Recordings ───
 export const recordings = {
   list: (meetingId: string) =>
-    api.get(`/meetings/${meetingId}/recordings`).then((r) => r.data),
+    api.get(`/recordings/${meetingId}`).then((r) => r.data),
 
   getCompositeUrl: (meetingId: string) =>
-    api.get<{ url: string }>(`/meetings/${meetingId}/recordings/composite`).then((r) => r.data),
+    api.get<{ url: string }>(`/recordings/${meetingId}/composite`).then((r) => r.data),
 
   getTracks: (meetingId: string) =>
-    api.get(`/meetings/${meetingId}/recordings/tracks`).then((r) => r.data),
+    api.get(`/recordings/${meetingId}/tracks`).then((r) => r.data),
 
-  getDownloadUrl: (meetingId: string, recordingId: string) =>
-    api.get<{ url: string }>(`/meetings/${meetingId}/recordings/${recordingId}/download`).then((r) => r.data),
+  getDownloadUrl: (meetingId: string, recordingId?: string) =>
+    `/api/recordings/${meetingId}/download${recordingId ? `/${recordingId}` : ''}`,
 };
 
 // ─── Calendar ───
 export const calendar = {
   export: (meetingId: string) =>
-    api.post(`/meetings/${meetingId}/calendar/export`).then((r) => r.data),
+    api.post(`/calendar/${meetingId}/export`).then((r) => r.data),
 
   getIcs: (meetingId: string) =>
-    api.get(`/meetings/${meetingId}/calendar/ics`, { responseType: 'blob' }).then((r) => r.data),
+    api.get(`/calendar/${meetingId}/ics`, { responseType: 'blob' }).then((r) => r.data),
 };
 
 // ─── Chat ───

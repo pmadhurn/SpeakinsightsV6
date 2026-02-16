@@ -232,7 +232,7 @@ async def join_meeting(
             return JoinResponse(
                 token=token,
                 room_id=meeting.livekit_room_name,
-                livekit_url=settings.LIVEKIT_URL,
+                livekit_url=settings.LIVEKIT_EXTERNAL_URL,
                 participant_id=host.id,
             )
 
@@ -312,7 +312,7 @@ async def approve_participant(
     return JoinResponse(
         token=token,
         room_id=meeting.livekit_room_name,
-        livekit_url=settings.LIVEKIT_URL,
+        livekit_url=settings.LIVEKIT_EXTERNAL_URL,
         participant_id=participant.id,
     )
 

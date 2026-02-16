@@ -4,7 +4,7 @@ Handles room management, token generation, and egress (recording) operations.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from livekit.api import (
@@ -81,7 +81,7 @@ class LiveKitService:
                 .with_identity(participant_name)
                 .with_name(participant_name)
                 .with_grants(grant)
-                .with_ttl(86400)  # 24 hours
+                .with_ttl(timedelta(hours=24))
             )
 
             jwt_str = token.to_jwt()

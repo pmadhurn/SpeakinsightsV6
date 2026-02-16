@@ -61,6 +61,7 @@ export default function MeetingReview() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [sentiment, setSentiment] = useState<SentimentData | null>(null);
   const [recordingUrl, setRecordingUrl] = useState<string | undefined>();
+  const [downloadUrl, setDownloadUrl] = useState<string | undefined>();
 
   // UI state
   const [loading, setLoading] = useState(true);
@@ -82,14 +83,16 @@ export default function MeetingReview() {
         summaries.get(id),
         summaries.getTasks(id),
         summaries.getSentiment(id),
-        recordings.getCompositeUrl(id),
       ]);
 
       if (results[0].status === 'fulfilled') setSegments(results[0].value);
       if (results[1].status === 'fulfilled') setSummary(results[1].value);
       if (results[2].status === 'fulfilled') setTasks(results[2].value);
       if (results[3].status === 'fulfilled') setSentiment(results[3].value);
-      if (results[4].status === 'fulfilled') setRecordingUrl(results[4].value.url);
+
+      // Recording URLs are direct endpoints, not JSON — just set the paths
+      setRecordingUrl(`/api/recordings/${id}/composite`);
+      setDownloadUrl(`/api/recordings/${id}/download`);
     } catch {
       // Meeting might not exist
     } finally {
@@ -160,8 +163,8 @@ export default function MeetingReview() {
 
   // Download handlers
   const handleDownloadRecording = useCallback(() => {
-    if (recordingUrl) window.open(recordingUrl, '_blank');
-  }, [recordingUrl]);
+    if (downloadUrl) window.open(downloadUrl, '_blank');
+  }, [downloadUrl]);
 
   const handleExportCalendar = useCallback(async () => {
     if (!id) return;

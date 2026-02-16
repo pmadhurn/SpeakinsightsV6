@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     # LiveKit
     LIVEKIT_URL: str = "ws://localhost:7880"
+    LIVEKIT_EXTERNAL_URL: str = "ws://localhost:7880"  # URL returned to browsers
     LIVEKIT_API_KEY: str = "devkey"
     LIVEKIT_API_SECRET: str = "devsecret1234567890"
 

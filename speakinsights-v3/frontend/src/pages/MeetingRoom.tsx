@@ -275,6 +275,8 @@ export default function MeetingRoom() {
     <LiveKitRoom
       token={token}
       serverUrl={livekitUrl}
+      audio={true}
+      video={true}
       connectOptions={{ autoSubscribe: true }}
       onConnected={handleConnected}
       onDisconnected={handleDisconnected}
