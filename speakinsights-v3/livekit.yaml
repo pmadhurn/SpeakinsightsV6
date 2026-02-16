@@ -35,13 +35,6 @@ room:
   # Departure timeout (seconds)
   departure_timeout: 20
 
-# Egress configuration (recording)
-egress:
-  # Where recordings are stored inside the egress container
-  file_output:
-    local:
-      directory: /recordings
-
 # Logging
 logging:
   level: info

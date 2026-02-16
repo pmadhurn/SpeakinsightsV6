@@ -1,0 +1,26 @@
+# =============================================================================
+# LiveKit Egress Configuration — SpeakInsights v3
+# =============================================================================
+
+# LiveKit server connection
+api_key: devkey
+api_secret: devsecret1234567890
+ws_url: ws://livekit:7880
+
+# Redis for job queue
+redis:
+  address: redis:6379
+
+# Health check port
+health_port: 9090
+
+# File output configuration
+file_output:
+  local:
+    directory: /recordings
+
+# Temp directory for processing
+tmp_dir: /home/egress/tmp
+
+# Logging
+log_level: info
