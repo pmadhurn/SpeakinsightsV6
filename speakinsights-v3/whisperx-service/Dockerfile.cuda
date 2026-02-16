@@ -1,0 +1,43 @@
+# =============================================================================
+# SpeakInsights v3 — WhisperX Service Dockerfile (CUDA / NVIDIA GPU Windows)
+# =============================================================================
+# For Windows machines with NVIDIA GPU. Use with docker-compose.windows.yml.
+# =============================================================================
+
+FROM pytorch/pytorch:2.1.2-cuda12.1-cudnn8-runtime
+
+# Prevent Python from writing .pyc files and enable unbuffered output
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    git \
+    build-essential \
+    libsndfile1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better layer caching
+COPY requirements.txt .
+
+# Install remaining requirements (torch already in base image)
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application source
+COPY app/ ./app/
+
+# Expose the service port
+EXPOSE 9000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:9000/health')" || exit 1
+
+# Run the service
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9000", "--workers", "1"]
