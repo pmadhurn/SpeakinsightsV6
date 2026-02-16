@@ -1,0 +1,50 @@
+# =============================================================================
+# SpeakInsights v3 — Python Dependencies
+# =============================================================================
+
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+
+# Database
+sqlalchemy[asyncio]==2.0.35
+asyncpg==0.30.0
+alembic==1.13.0
+
+# Pydantic
+pydantic==2.9.0
+pydantic-settings==2.5.0
+
+# File handling
+python-multipart==0.0.9
+aiofiles==24.1.0
+
+# HTTP client
+httpx==0.27.0
+
+# WebSockets
+websockets==13.0
+
+# Redis
+redis==5.0.0
+
+# LiveKit
+livekit-api==0.7.0
+
+# Sentiment analysis
+vaderSentiment==3.3.2
+
+# Calendar
+icalendar==5.0.0
+
+# Vector database
+pgvector==0.3.0
+
+# Numeric
+numpy==1.26.0
+
+# JWT (for LiveKit tokens if needed)
+python-jose==3.3.0
+
+# Greenlet for SQLAlchemy async
+greenlet>=3.0.0
