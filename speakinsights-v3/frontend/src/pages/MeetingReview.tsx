@@ -12,13 +12,13 @@ import {
   Users,
   Clock,
   Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import GlassCard from '@/components/ui/GlassCard';
 import GlassButton from '@/components/ui/GlassButton';
 import Badge from '@/components/ui/Badge';
 import Avatar from '@/components/ui/Avatar';
 import Loader from '@/components/ui/Loader';
-import ProcessingStatus from '@/components/ui/ProcessingStatus';
 import { VideoPlayer } from '@/components/history/VideoPlayer';
 import { TranscriptViewer } from '@/components/transcription/TranscriptViewer';
 import { SummaryCard } from '@/components/summary/SummaryCard';
@@ -33,6 +33,22 @@ import type { TranscriptSegment } from '@/types/transcription';
 import type { Summary, Task, SentimentData } from '@/types/summary';
 
 type ReviewTab = 'summary' | 'tasks' | 'sentiment';
+
+/** Simple inline processing step indicator */
+function ProcessingStatus({ status, label }: { status: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      {status === 'completed' ? (
+        <CheckCircle2 size={14} className="text-green-400" />
+      ) : status === 'processing' ? (
+        <Loader2 size={14} className="animate-spin text-cyan" />
+      ) : (
+        <Clock size={14} className="text-white/30" />
+      )}
+      <span className={status === 'pending' ? 'text-white/40' : 'text-white/80'}>{label}</span>
+    </div>
+  );
+}
 
 export default function MeetingReview() {
   const { id } = useParams<{ id: string }>();

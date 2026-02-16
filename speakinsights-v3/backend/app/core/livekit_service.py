@@ -80,7 +80,7 @@ class LiveKitService:
                 AccessToken(self._api_key, self._api_secret)
                 .with_identity(participant_name)
                 .with_name(participant_name)
-                .with_grant(grant)
+                .with_grants(grant)
                 .with_ttl(86400)  # 24 hours
             )
 

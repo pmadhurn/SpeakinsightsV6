@@ -73,7 +73,7 @@ async def _meeting_to_response(meeting: Meeting, db: AsyncSession) -> MeetingRes
 # ---------------------------------------------------------------------------
 
 
-@router.post("/", response_model=MeetingResponse, status_code=201)
+@router.post("", response_model=MeetingResponse, status_code=201)
 async def create_meeting(
     data: MeetingCreate,
     db: AsyncSession = Depends(get_db),
@@ -126,7 +126,7 @@ async def create_meeting(
     return await _meeting_to_response(meeting, db)
 
 
-@router.get("/", response_model=MeetingListResponse)
+@router.get("", response_model=MeetingListResponse)
 async def list_meetings(
     status: str | None = Query(None, description="Filter by status"),
     search: str | None = Query(None, description="Search by title"),

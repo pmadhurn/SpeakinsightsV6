@@ -136,7 +136,7 @@ def _build_direct_messages(
 # POST / — send chat message (synchronous)
 # ---------------------------------------------------------------------------
 
-@router.post("/", response_model=ChatResponse, status_code=201)
+@router.post("", response_model=ChatResponse, status_code=201)
 async def send_chat_message(
     data: ChatRequest,
     db: AsyncSession = Depends(get_db),

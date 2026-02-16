@@ -46,7 +46,7 @@ export default function App() {
       <Suspense
         fallback={
           <div className="flex items-center justify-center min-h-screen">
-            <Loader size="lg" label="Loading…" />
+            <Loader size="lg" text="Loading…" />
           </div>
         }
       >

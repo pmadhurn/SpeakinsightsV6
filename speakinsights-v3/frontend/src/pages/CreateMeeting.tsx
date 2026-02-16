@@ -88,9 +88,22 @@ export default function CreateMeeting() {
     }
   };
 
-  const handleStartMeeting = () => {
-    if (createdMeeting) {
-      navigate(`/meeting/${createdMeeting.id}`);
+  const handleStartMeeting = async () => {
+    if (!createdMeeting) return;
+    try {
+      const joinResult = await meetings.join(createdMeeting.id, form.host_name.trim());
+      navigate(`/meeting/${createdMeeting.id}`, {
+        state: {
+          token: joinResult.token,
+          roomId: joinResult.room_id,
+          livekitUrl: joinResult.livekit_url,
+          participantName: form.host_name.trim(),
+          isHost: true,
+          meetingTitle: createdMeeting.title,
+        },
+      });
+    } catch {
+      glassToast.error('Failed to join meeting. Please try again.');
     }
   };
 

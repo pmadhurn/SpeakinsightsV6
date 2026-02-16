@@ -26,7 +26,7 @@ router = APIRouter()
 # GET / — list installed models
 # ---------------------------------------------------------------------------
 
-@router.get("/", response_model=OllamaModelListResponse)
+@router.get("", response_model=OllamaModelListResponse)
 async def list_models():
     """List all installed Ollama models with name, size, family, and quantization."""
     try:

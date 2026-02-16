@@ -85,8 +85,12 @@ export default function MeetingRoom() {
   // ─── Redirect if no token ───
   useEffect(() => {
     if (!token && meetingId) {
-      // Try to get meeting info and redirect to join
-      navigate(`/join/${meetingId}`, { replace: true });
+      // Fetch meeting to get the code, then redirect to join page
+      meetingsApi.get(meetingId).then((m) => {
+        navigate(`/join/${m.code}`, { replace: true });
+      }).catch(() => {
+        navigate('/', { replace: true });
+      });
     }
   }, [token, meetingId, navigate]);
 
