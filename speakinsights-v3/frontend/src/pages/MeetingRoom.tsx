@@ -343,14 +343,18 @@ export default function MeetingRoom() {
           {/* Caption overlay */}
           {captionsEnabled && (currentCaption || captions.length > 0) && (
             <CaptionOverlay
-              caption={currentCaption || (captions.length > 0 ? captions[captions.length - 1].text : '')}
-              speaker={
+              currentCaption={
                 currentCaption
-                  ? participantName
-                  : captions.length > 0
-                  ? captions[captions.length - 1].speaker
-                  : ''
+                  ? { text: currentCaption, speaker: participantName }
+                  : null
               }
+              recentCaptions={captions.slice(-3).map((c) => ({
+                id: c.id,
+                text: c.text,
+                speaker: c.speaker,
+                timestamp: c.timestamp,
+              }))}
+              visible={captionsEnabled}
             />
           )}
         </div>

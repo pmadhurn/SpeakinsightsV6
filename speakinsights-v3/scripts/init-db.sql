@@ -336,7 +336,7 @@ CREATE TRIGGER trg_tasks_updated_at
 
 
 -- ---------------------------------------------------------------------------
--- Done
+-- Done — Schema created
 -- ---------------------------------------------------------------------------
 DO $$
 BEGIN
@@ -347,4 +347,110 @@ BEGIN
     RAISE NOTICE '             transcript_embeddings, chat_messages, calendar_exports';
     RAISE NOTICE 'Views      : meeting_overview';
     RAISE NOTICE 'Triggers   : updated_at on users, meetings, tasks';
+END $$;
+
+
+-- =============================================================================
+-- SEED DATA — Demo content for testing and presentations
+-- =============================================================================
+
+-- Test users
+INSERT INTO users (id, display_name, email, avatar_color)
+VALUES
+    ('a0000000-0000-0000-0000-000000000001', 'Madhur (Host)', 'madhur@speakinsights.dev', '#22D3EE'),
+    ('a0000000-0000-0000-0000-000000000002', 'Alice Chen', 'alice@example.com', '#A78BFA'),
+    ('a0000000-0000-0000-0000-000000000003', 'Bob Williams', 'bob@example.com', '#34D399')
+ON CONFLICT (id) DO NOTHING;
+
+-- Sample completed meeting (for demo review page)
+INSERT INTO meetings (id, title, description, room_id, host_id, status, language, started_at, ended_at, duration_sec)
+VALUES (
+    'b0000000-0000-0000-0000-000000000001',
+    'Sprint Planning — Week 12',
+    'Bi-weekly sprint planning meeting to discuss backlog items, assign tasks, and set priorities for the upcoming sprint.',
+    'si-demo0001',
+    'a0000000-0000-0000-0000-000000000001',
+    'ended',
+    'en',
+    NOW() - INTERVAL '2 hours',
+    NOW() - INTERVAL '1 hour',
+    3600
+)
+ON CONFLICT (room_id) DO NOTHING;
+
+-- Participants for the demo meeting
+INSERT INTO participants (id, meeting_id, display_name, role, status, joined_at, left_at, duration_sec)
+VALUES
+    ('c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Madhur (Host)', 'host', 'left', NOW() - INTERVAL '2 hours', NOW() - INTERVAL '1 hour', 3600),
+    ('c0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 'Alice Chen', 'participant', 'left', NOW() - INTERVAL '115 minutes', NOW() - INTERVAL '1 hour', 3300),
+    ('c0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', 'Bob Williams', 'participant', 'left', NOW() - INTERVAL '110 minutes', NOW() - INTERVAL '1 hour', 3000)
+ON CONFLICT (meeting_id, display_name) DO NOTHING;
+
+-- Sample transcription segments (realistic conversation)
+INSERT INTO transcription_segments (id, meeting_id, participant_name, segment_index, start_time, end_time, text, confidence, language, sentiment_score, sentiment_label, source)
+VALUES
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'Madhur (Host)', 1, 0.0, 8.5,
+     'Good morning everyone, welcome to our sprint planning session. Let''s start by reviewing what we accomplished last sprint.', 0.95, 'en', 0.68, 'positive', 'whisperx'),
+
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'Alice Chen', 2, 9.0, 22.0,
+     'Thanks Madhur. Last sprint we completed the user authentication module, the dashboard redesign, and the notification system. We had two items that carried over — the search functionality and the export feature.', 0.92, 'en', 0.45, 'positive', 'whisperx'),
+
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'Bob Williams', 3, 23.0, 35.5,
+     'The search functionality is about 80% done. I ran into some performance issues with the full-text search on larger datasets. I think we need to add proper indexing and maybe consider Elasticsearch for production.', 0.91, 'en', -0.12, 'neutral', 'whisperx'),
+
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'Madhur (Host)', 4, 36.0, 48.0,
+     'That makes sense. Let''s prioritize the indexing fix this sprint. Alice, what do you think about the export feature timeline?', 0.94, 'en', 0.32, 'positive', 'whisperx'),
+
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'Alice Chen', 5, 49.0, 62.0,
+     'I think we can finish the export feature by Wednesday. I''ve already set up the CSV and PDF templates. The main remaining work is the Excel export with charts, which is a bit tricky but doable.', 0.93, 'en', 0.55, 'positive', 'whisperx'),
+
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'Bob Williams', 6, 63.0, 78.0,
+     'I also wanted to bring up the mobile responsiveness issue. Several users have reported that the dashboard doesn''t render correctly on tablets. I think we should allocate a day or two for responsive fixes.', 0.90, 'en', -0.25, 'negative', 'whisperx'),
+
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'Madhur (Host)', 7, 79.0, 92.0,
+     'Great point Bob. Let''s add that to the sprint. So our priorities this sprint are: search indexing fix, export feature completion, and mobile responsive fixes. Any other items we should consider?', 0.95, 'en', 0.42, 'positive', 'whisperx'),
+
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'Alice Chen', 8, 93.0, 108.0,
+     'I''d like to propose adding unit tests for the authentication module. We shipped it last sprint without full test coverage. It would be good to have that before we move further.', 0.92, 'en', 0.28, 'positive', 'whisperx'),
+
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'Madhur (Host)', 9, 109.0, 120.0,
+     'Agreed. Test coverage is important. Let''s aim for at least 80% coverage on the auth module. Alright team, I think we have a solid plan. Let''s wrap up and get to work!', 0.94, 'en', 0.72, 'positive', 'whisperx')
+ON CONFLICT DO NOTHING;
+
+-- Sample summary for the demo meeting
+INSERT INTO summaries (id, meeting_id, executive_summary, key_points, decisions_made, follow_ups, sentiment_overview, speaker_sentiments, sentiment_arc, model_used)
+VALUES (
+    'd0000000-0000-0000-0000-000000000001',
+    'b0000000-0000-0000-0000-000000000001',
+    'The team conducted a sprint planning session reviewing accomplishments from the previous sprint and planning priorities for the upcoming sprint. Key accomplishments included the user authentication module, dashboard redesign, and notification system. The team identified three priority items: fixing search indexing performance, completing the export feature, and addressing mobile responsiveness issues. Adding unit tests for the authentication module was also agreed upon.',
+    '["Completed last sprint: user auth, dashboard redesign, notification system", "Search functionality is 80% complete but needs performance optimization", "Export feature (CSV, PDF, Excel) expected done by Wednesday", "Mobile responsiveness issues reported by users on tablets", "Authentication module needs unit test coverage (target: 80%)"]'::jsonb,
+    '["Prioritize search indexing fix this sprint", "Add mobile responsive fixes to sprint backlog", "Target 80% unit test coverage for authentication module", "Sprint priorities: search indexing, export feature, mobile fixes, auth tests"]'::jsonb,
+    '["Bob to complete search indexing optimization", "Alice to finish export feature by Wednesday", "Bob to investigate and fix tablet rendering issues", "Alice to write unit tests for authentication module"]'::jsonb,
+    '{"overall_score": 0.38, "overall_label": "positive", "meeting_mood": "productive and collaborative"}'::jsonb,
+    '[{"speaker_name": "Madhur (Host)", "avg_score": 0.54, "label": "positive", "summary": "Maintained a positive and encouraging tone throughout. Effectively facilitated discussion and concluded with clear action items."}, {"speaker_name": "Alice Chen", "avg_score": 0.43, "label": "positive", "summary": "Contributed constructively with progress updates and proactive suggestions about test coverage."}, {"speaker_name": "Bob Williams", "avg_score": -0.19, "label": "neutral", "summary": "Raised important concerns about performance and mobile issues. Pragmatic and solution-oriented."}]'::jsonb,
+    '[{"timestamp": 0, "score": 0.68, "label": "positive"}, {"timestamp": 20, "score": 0.45, "label": "positive"}, {"timestamp": 40, "score": -0.12, "label": "neutral"}, {"timestamp": 60, "score": 0.44, "label": "positive"}, {"timestamp": 80, "score": -0.25, "label": "negative"}, {"timestamp": 100, "score": 0.35, "label": "positive"}, {"timestamp": 120, "score": 0.72, "label": "positive"}]'::jsonb,
+    'llama3.2:3b'
+)
+ON CONFLICT DO NOTHING;
+
+-- Sample tasks extracted from the meeting
+INSERT INTO tasks (id, meeting_id, summary_id, title, description, assignee_name, due_date, priority, status, source_timestamp)
+VALUES
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+     'Fix search indexing performance', 'Optimize full-text search with proper indexing. Consider Elasticsearch for production scale.', 'Bob Williams', CURRENT_DATE + INTERVAL '5 days', 'high', 'pending', 23.0),
+
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+     'Complete export feature', 'Finish CSV, PDF, and Excel export templates. Excel export with charts is the remaining work.', 'Alice Chen', CURRENT_DATE + INTERVAL '3 days', 'high', 'pending', 49.0),
+
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+     'Fix mobile responsiveness', 'Address dashboard rendering issues on tablets reported by users.', 'Bob Williams', CURRENT_DATE + INTERVAL '7 days', 'medium', 'pending', 63.0),
+
+    (uuid_generate_v4(), 'b0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+     'Write auth module unit tests', 'Add unit tests for the authentication module. Target 80% code coverage minimum.', 'Alice Chen', CURRENT_DATE + INTERVAL '7 days', 'medium', 'pending', 93.0)
+ON CONFLICT DO NOTHING;
+
+-- Done
+DO $$
+BEGIN
+    RAISE NOTICE '=== Seed data inserted (1 demo meeting with transcript, summary, tasks) ===';
 END $$;

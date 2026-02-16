@@ -126,19 +126,19 @@ export const chat = {
   },
 
   getHistory: (sessionId: string) =>
-    api.get<ChatMessage[]>(`/chat/sessions/${sessionId}/messages`).then((r) => r.data),
+    api.get(`/chat/history/${sessionId}`).then((r) => r.data),
 
   getSessions: () =>
-    api.get<ChatSession[]>('/chat/sessions').then((r) => r.data),
+    api.get('/chat/sessions').then((r) => r.data),
 
   deleteSession: (sessionId: string) =>
-    api.delete(`/chat/sessions/${sessionId}`).then((r) => r.data),
+    api.delete(`/chat/history/${sessionId}`).then((r) => r.data),
 };
 
 // ─── Models (Ollama) ───
 export const models = {
   list: () =>
-    api.get('/models').then((r) => r.data),
+    api.get('/models/').then((r) => r.data),
 
   pull: (name: string) =>
     api.post('/models/pull', { name }).then((r) => r.data),
