@@ -58,11 +58,22 @@ export default function MeetingRoom() {
   const navigate = useNavigate();
   const state = (location.state as LocationState) || {};
 
+  // Compute the correct LiveKit URL dynamically based on how we're accessed.
+  // When behind Cloudflare tunnel (HTTPS), route through nginx /livekit-ws/ proxy.
+  // When developing locally (HTTP), connect directly to LiveKit.
+  const computedLivekitUrl = (() => {
+    const isSecure = window.location.protocol === 'https:';
+    if (isSecure) {
+      // Route through nginx reverse proxy for LiveKit
+      return `wss://${window.location.host}/livekit-ws/`;
+    }
+    // Local development: use provided URL or default
+    return state.livekitUrl || import.meta.env.VITE_LIVEKIT_URL || 'ws://localhost:7880';
+  })();
+
   // Core meeting state
   const [token, setToken] = useState(state.token || '');
-  const [livekitUrl, setLivekitUrl] = useState(
-    state.livekitUrl || import.meta.env.VITE_LIVEKIT_URL || 'ws://localhost:7880'
-  );
+  const [livekitUrl, setLivekitUrl] = useState(computedLivekitUrl);
   const [isHost, setIsHost] = useState(state.isHost || false);
   const [participantName, setParticipantName] = useState(state.participantName || 'Guest');
   const [meetingTitle, setMeetingTitle] = useState(state.meetingTitle || 'Meeting');

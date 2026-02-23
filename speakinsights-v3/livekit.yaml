@@ -13,8 +13,10 @@ rtc:
   # UDP port range for WebRTC media
   port_range_start: 7882
   port_range_end: 7882
-  # Use external IP for ICE candidates (auto-detect)
-  use_external_ip: false
+  # Use external IP for ICE candidates (required for Docker/NAT/tunnel setups)
+  use_external_ip: true
+  # Allow loopback for local development
+  enable_loopback_candidate: true
 
 # Redis — required for multi-node and egress
 redis:

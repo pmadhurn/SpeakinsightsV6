@@ -88,15 +88,25 @@ export default function CreateMeeting() {
     }
   };
 
+  // Compute the correct LiveKit URL based on the current page origin.
+  const getEffectiveLivekitUrl = () => {
+    const isSecure = window.location.protocol === 'https:';
+    if (isSecure) {
+      return `wss://${window.location.host}/livekit-ws/`;
+    }
+    return 'ws://localhost:7880';
+  };
+
   const handleStartMeeting = async () => {
     if (!createdMeeting) return;
     try {
       const joinResult = await meetings.join(createdMeeting.id, form.host_name.trim());
+      const effectiveLivekitUrl = getEffectiveLivekitUrl();
       navigate(`/meeting/${createdMeeting.id}`, {
         state: {
           token: joinResult.token,
           roomId: joinResult.room_id,
-          livekitUrl: joinResult.livekit_url,
+          livekitUrl: effectiveLivekitUrl,
           participantName: form.host_name.trim(),
           isHost: true,
           meetingTitle: createdMeeting.title,
