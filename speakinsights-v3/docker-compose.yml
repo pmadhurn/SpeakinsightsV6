@@ -58,6 +58,7 @@ services:
       - LIVEKIT_URL=ws://livekit:7880
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-devsecret1234567890}
+      - LIVEKIT_EXTERNAL_URL=${LIVEKIT_EXTERNAL_URL:-ws://localhost:7880}
       # WhisperX
       - WHISPERX_URL=http://whisperx:9000
       # Ollama — on Mac, connects to host machine (native Ollama)
@@ -75,7 +76,7 @@ services:
       - speakinsights-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -105,7 +106,7 @@ services:
       - speakinsights-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d speakinsights"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d speakinsights" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -131,7 +132,7 @@ services:
       - speakinsights-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -149,12 +150,12 @@ services:
     image: livekit/livekit-server:v1.7
     container_name: speakinsights-livekit
     ports:
-      - "7880:7880"     # HTTP / WebSocket
-      - "7881:7881"     # RTC over TCP
+      - "7880:7880" # HTTP / WebSocket
+      - "7881:7881" # RTC over TCP
       - "7882:7882/udp" # RTC over UDP
     volumes:
       - ./livekit.yaml:/livekit.yaml:ro
-    command: ["--config", "/livekit.yaml"]
+    command: [ "--config", "/livekit.yaml" ]
     depends_on:
       redis:
         condition: service_healthy

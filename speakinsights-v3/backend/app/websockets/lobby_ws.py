@@ -168,7 +168,7 @@ class LobbyManager:
             async with async_session_factory() as session:
                 # Fetch meeting room name
                 m_result = await session.execute(
-                    text("SELECT id, room_id FROM meetings WHERE id = :mid"),
+                    text("SELECT id, livekit_room_name FROM meetings WHERE id = :mid"),
                     {"mid": meeting_id},
                 )
                 m_row = m_result.first()
@@ -198,7 +198,7 @@ class LobbyManager:
 
                 # Update participant record
                 await session.execute(
-                    text("UPDATE participants SET status = 'approved', joined_at = :now WHERE id = :pid"),
+                    text("UPDATE participants SET is_approved = TRUE, joined_at = :now WHERE id = :pid"),
                     {"pid": participant_id, "now": datetime.now(timezone.utc)},
                 )
                 await session.commit()
@@ -214,7 +214,7 @@ class LobbyManager:
                 "type": "approved",
                 "token": token,
                 "room_id": room_name,
-                "livekit_url": settings.LIVEKIT_URL,
+                "livekit_url": settings.LIVEKIT_EXTERNAL_URL,
             })
 
             logger.info("Participant %s approved for meeting %s", participant_id, meeting_id)
