@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     LIVEKIT_URL: str = "ws://localhost:7880"
     LIVEKIT_EXTERNAL_URL: str = "ws://localhost:7880"  # URL returned to browsers
     LIVEKIT_API_KEY: str = "devkey"
-    LIVEKIT_API_SECRET: str = "devsecret1234567890"
+    LIVEKIT_API_SECRET: str = "devsecret1234567890abcdef12345678"
 
     # WhisperX
     WHISPERX_URL: str = "http://localhost:9000"

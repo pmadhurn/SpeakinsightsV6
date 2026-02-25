@@ -4,7 +4,7 @@
 
 # LiveKit server connection
 api_key: devkey
-api_secret: devsecret1234567890
+api_secret: devsecret1234567890abcdef12345678
 ws_url: ws://livekit:7880
 
 # Redis for job queue

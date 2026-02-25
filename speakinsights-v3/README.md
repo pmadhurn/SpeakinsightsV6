@@ -122,7 +122,7 @@ chmod +x scripts/setup-windows.sh
 | Variable             | Default                                  | Description                                  |
 |----------------------|------------------------------------------|----------------------------------------------|
 | `LIVEKIT_API_KEY`    | `devkey`                                 | LiveKit authentication key                   |
-| `LIVEKIT_API_SECRET` | `devsecret1234567890`                    | LiveKit authentication secret                |
+| `LIVEKIT_API_SECRET` | `devsecret1234567890abcdef12345678`      | LiveKit authentication secret                |
 | `POSTGRES_PASSWORD`  | `speakinsights`                          | PostgreSQL password                          |
 | `HF_TOKEN`           | *(empty)*                                | HuggingFace token (WhisperX diarization)     |
 | `OLLAMA_URL`         | `http://host.docker.internal:11434`      | Ollama API endpoint                          |

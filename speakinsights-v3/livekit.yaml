@@ -13,8 +13,9 @@ rtc:
   # UDP port range for WebRTC media
   port_range_start: 7882
   port_range_end: 7882
-  # Use external IP for ICE candidates (required for Docker/NAT/tunnel setups)
-  use_external_ip: true
+  # Disable external IP auto-detection (crashes in Docker on macOS)
+  # Cloudflare tunnel handles signaling; WebRTC media uses TURN or direct LAN
+  use_external_ip: false
   # Allow loopback for local development
   enable_loopback_candidate: true
 
@@ -24,7 +25,7 @@ redis:
 
 # API keys for authentication
 keys:
-  devkey: devsecret1234567890
+  devkey: devsecret1234567890abcdef12345678
 
 # Room settings
 room:

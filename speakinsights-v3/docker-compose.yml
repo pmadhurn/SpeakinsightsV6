@@ -57,7 +57,7 @@ services:
       # LiveKit
       - LIVEKIT_URL=ws://livekit:7880
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
-      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-devsecret1234567890}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-devsecret1234567890abcdef12345678}
       - LIVEKIT_EXTERNAL_URL=${LIVEKIT_EXTERNAL_URL:-ws://localhost:7880}
       # WhisperX
       - WHISPERX_URL=http://whisperx:9000
