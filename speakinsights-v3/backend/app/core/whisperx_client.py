@@ -82,7 +82,7 @@ class WhisperXClient:
         try:
             lang = language if language != "auto" else None
             async with httpx.AsyncClient(timeout=60.0) as client:
-                files = {"audio": ("chunk.wav", audio_bytes, "audio/wav")}
+                files = {"file": ("chunk.wav", audio_bytes, "audio/wav")}
                 data: dict[str, Any] = {}
                 if lang:
                     data["language"] = lang
@@ -140,7 +140,7 @@ class WhisperXClient:
             mime = "audio/ogg" if path.suffix == ".ogg" else "audio/wav"
 
             async with httpx.AsyncClient(timeout=300.0) as client:
-                files = {"audio": (path.name, audio_bytes, mime)}
+                files = {"file": (path.name, audio_bytes, mime)}
                 data: dict[str, Any] = {}
                 if lang:
                     data["language"] = lang

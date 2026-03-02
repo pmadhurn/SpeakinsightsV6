@@ -8,6 +8,7 @@ PARTICIPANT connects to /ws/lobby/{meeting_id}?role=participant&participant_id={
 
 import json
 import logging
+import uuid as _uuid
 from datetime import datetime, timezone
 from typing import Dict, Optional
 
@@ -73,7 +74,7 @@ class LobbyManager:
             async with async_session_factory() as session:
                 result = await session.execute(
                     text("SELECT display_name FROM participants WHERE id = :pid"),
-                    {"pid": participant_id},
+                    {"pid": _uuid.UUID(participant_id)},
                 )
                 row = result.first()
                 if row:
@@ -169,7 +170,7 @@ class LobbyManager:
                 # Fetch meeting room name
                 m_result = await session.execute(
                     text("SELECT id, livekit_room_name FROM meetings WHERE id = :mid"),
-                    {"mid": meeting_id},
+                    {"mid": _uuid.UUID(meeting_id)},
                 )
                 m_row = m_result.first()
                 if not m_row:
@@ -179,7 +180,7 @@ class LobbyManager:
                 # Fetch participant
                 p_result = await session.execute(
                     text("SELECT id, display_name FROM participants WHERE id = :pid"),
-                    {"pid": participant_id},
+                    {"pid": _uuid.UUID(participant_id)},
                 )
                 p_row = p_result.first()
                 if not p_row:
@@ -199,7 +200,7 @@ class LobbyManager:
                 # Update participant record
                 await session.execute(
                     text("UPDATE participants SET is_approved = TRUE, joined_at = :now WHERE id = :pid"),
-                    {"pid": participant_id, "now": datetime.now(timezone.utc)},
+                    {"pid": _uuid.UUID(participant_id), "now": datetime.utcnow()},
                 )
                 await session.commit()
 
@@ -302,7 +303,7 @@ async def lobby_websocket(websocket: WebSocket, meeting_id: str):
         async with async_session_factory() as session:
             result = await session.execute(
                 text("SELECT id FROM meetings WHERE id = :mid"),
-                {"mid": meeting_id},
+                {"mid": _uuid.UUID(meeting_id)},
             )
             if not result.first():
                 await websocket.close(code=4004, reason="Meeting not found")

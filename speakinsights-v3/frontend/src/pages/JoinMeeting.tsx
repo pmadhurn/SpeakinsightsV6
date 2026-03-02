@@ -23,15 +23,7 @@ export default function JoinMeeting() {
   const [isJoining, setIsJoining] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Compute the correct LiveKit URL based on the current page origin.
-  // When behind Cloudflare tunnel (HTTPS), route through nginx /livekit-ws/ proxy.
-  const getEffectiveLivekitUrl = () => {
-    const isSecure = window.location.protocol === 'https:';
-    if (isSecure) {
-      return `wss://${window.location.host}/livekit-ws/`;
-    }
-    return 'ws://localhost:7880';
-  };
+
 
   // ─── Lobby WebSocket ───
   const lobby = useLobby({
@@ -72,14 +64,13 @@ export default function JoinMeeting() {
   useEffect(() => {
     if (lobby.status === 'approved' && lobby.token) {
       setStep('approved');
-      // Auto-redirect after showing success — override LiveKit URL
-      const effectiveLivekitUrl = getEffectiveLivekitUrl();
+      // Auto-redirect after showing success — use LiveKit URL from backend
       const timer = setTimeout(() => {
         navigate(`/meeting/${meeting?.id}`, {
           state: {
             token: lobby.token,
             roomId: lobby.roomId,
-            livekitUrl: effectiveLivekitUrl,
+            livekitUrl: lobby.livekitUrl,
             participantName: name,
           },
         });
@@ -106,13 +97,12 @@ export default function JoinMeeting() {
       if (result.token && result.room_id) {
         setStep('approved');
         glassToast.success("You're in!");
-        const effectiveLivekitUrl = getEffectiveLivekitUrl();
         setTimeout(() => {
           navigate(`/meeting/${meeting.id}`, {
             state: {
               token: result.token,
               roomId: result.room_id,
-              livekitUrl: effectiveLivekitUrl,
+              livekitUrl: result.livekit_url,
               participantName: name,
             },
           });

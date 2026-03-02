@@ -11,6 +11,8 @@ from livekit.api import (
     AccessToken,
     VideoGrants,
     LiveKitAPI,
+    CreateRoomRequest,
+    ListParticipantsRequest,
     RoomCompositeEgressRequest,
     TrackEgressRequest,
     StopEgressRequest,
@@ -116,12 +118,14 @@ class LiveKitService:
         """
         try:
             api = self._get_api()
-            room = await api.room.create_room(
+            req = CreateRoomRequest(
                 name=room_name,
                 max_participants=max_participants,
                 empty_timeout=300,  # 5 min empty timeout
             )
+            room = await api.room.create_room(req)
             logger.info("Created room: %s (max=%d)", room_name, max_participants)
+            await api.aclose()
             return room
         except Exception as exc:
             logger.error("Failed to create room %s: %s", room_name, exc, exc_info=True)
@@ -138,9 +142,12 @@ class LiveKitService:
         """
         try:
             api = self._get_api()
-            participants = await api.room.list_participants(room=room_name)
-            logger.debug("Room %s has %d participants", room_name, len(participants))
-            return participants
+            req = ListParticipantsRequest(room=room_name)
+            participants = await api.room.list_participants(req)
+            participants_list = participants.participants
+            logger.debug("Room %s has %d participants", room_name, len(participants_list))
+            await api.aclose()
+            return participants_list
         except Exception as exc:
             logger.error(
                 "Failed to list participants for %s: %s", room_name, exc, exc_info=True
@@ -156,8 +163,11 @@ class LiveKitService:
         """
         try:
             api = self._get_api()
-            await api.room.remove_participant(room=room_name, identity=identity)
+            from livekit.api import RoomParticipantIdentity
+            req = RoomParticipantIdentity(room=room_name, identity=identity)
+            await api.room.remove_participant(req)
             logger.info("Removed participant %s from room %s", identity, room_name)
+            await api.aclose()
         except Exception as exc:
             logger.error(
                 "Failed to remove %s from %s: %s", identity, room_name, exc, exc_info=True
@@ -195,9 +205,10 @@ class LiveKitService:
             output = DirectFileOutput(filepath=output_path)
 
             # List room participants to find the audio track SID
-            participants = await api.room.list_participants(room=room_name)
+            req = ListParticipantsRequest(room=room_name)
+            participants_resp = await api.room.list_participants(req)
             track_sid: Optional[str] = None
-            for p in participants:
+            for p in participants_resp.participants:
                 if p.identity == participant_identity:
                     for track in p.tracks:
                         if track.type == 1:  # AUDIO
@@ -210,11 +221,12 @@ class LiveKitService:
                     f"No audio track found for participant {participant_identity} in {room_name}"
                 )
 
-            egress_info = await api.egress.start_track_egress(
+            egress_req = TrackEgressRequest(
                 room_name=room_name,
                 track_id=track_sid,
-                output=output,
+                file=output,
             )
+            egress_info = await api.egress.start_track_egress(egress_req)
 
             egress_id = egress_info.egress_id
             logger.info(
@@ -260,11 +272,12 @@ class LiveKitService:
                 filepath=output_path,
             )
 
-            egress_info = await api.egress.start_room_composite_egress(
+            egress_req = RoomCompositeEgressRequest(
                 room_name=room_name,
                 layout="speaker",
-                output=output,
+                file=output,
             )
+            egress_info = await api.egress.start_room_composite_egress(egress_req)
 
             egress_id = egress_info.egress_id
             logger.info(
@@ -294,8 +307,10 @@ class LiveKitService:
         """
         try:
             api = self._get_api()
-            info = await api.egress.stop_egress(egress_id=egress_id)
+            req = StopEgressRequest(egress_id=egress_id)
+            info = await api.egress.stop_egress(req)
             logger.info("Stopped egress %s", egress_id)
+            await api.aclose()
             return info
         except Exception as exc:
             logger.error("Failed to stop egress %s: %s", egress_id, exc, exc_info=True)
@@ -312,8 +327,11 @@ class LiveKitService:
         """
         try:
             api = self._get_api()
-            egress_list = await api.egress.list_egress(room_name=room_name)
+            req = ListEgressRequest(room_name=room_name)
+            egress_resp = await api.egress.list_egress(req)
+            egress_list = egress_resp.items
             logger.debug("Room %s has %d active egress processes", room_name, len(egress_list))
+            await api.aclose()
             return egress_list
         except Exception as exc:
             logger.error(

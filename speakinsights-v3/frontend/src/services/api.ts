@@ -57,7 +57,7 @@ export const meetings = {
 // ─── Transcriptions ───
 export const transcriptions = {
   getTranscript: (meetingId: string) =>
-    api.get<TranscriptSegment[]>(`/transcriptions/${meetingId}`).then((r) => r.data),
+    api.get<{ segments: TranscriptSegment[] }>(`/transcriptions/${meetingId}`).then((r) => r.data.segments || []),
 
   getTimeline: (meetingId: string) =>
     api.get<TranscriptTimeline>(`/transcriptions/${meetingId}/timeline`).then((r) => r.data),

@@ -58,18 +58,11 @@ export default function MeetingRoom() {
   const navigate = useNavigate();
   const state = (location.state as LocationState) || {};
 
-  // Compute the correct LiveKit URL dynamically based on how we're accessed.
-  // When behind Cloudflare tunnel (HTTPS), route through nginx /livekit-ws/ proxy.
-  // When developing locally (HTTP), connect directly to LiveKit.
-  const computedLivekitUrl = (() => {
-    const isSecure = window.location.protocol === 'https:';
-    if (isSecure) {
-      // Route through nginx reverse proxy for LiveKit
-      return `wss://${window.location.host}/livekit-ws/`;
-    }
-    // Local development: use provided URL or default
-    return state.livekitUrl || import.meta.env.VITE_LIVEKIT_URL || 'ws://localhost:7880';
-  })();
+  // LiveKit Cloud: connect directly to LiveKit Cloud's global edge network.
+  // The URL comes from the backend (via lobby approval or join response).
+  // LiveKit Cloud handles all WebRTC transport (UDP/TURN/STUN) automatically,
+  // so we don't need the nginx proxy workaround anymore.
+  const computedLivekitUrl = state.livekitUrl || import.meta.env.VITE_LIVEKIT_URL || '';
 
   // Core meeting state
   const [token, setToken] = useState(state.token || '');
@@ -339,9 +332,8 @@ export default function MeetingRoom() {
 
           {/* Connection status dot */}
           <span
-            className={`w-2 h-2 rounded-full ${
-              isConnected ? 'bg-emerald-400' : 'bg-red-400'
-            }`}
+            className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-red-400'
+              }`}
             title={isConnected ? 'Connected' : 'Disconnected'}
           />
         </div>
@@ -351,9 +343,8 @@ export default function MeetingRoom() {
       <div className="flex-1 flex overflow-hidden relative">
         {/* Video Grid */}
         <div
-          className={`flex-1 min-w-0 transition-all duration-300 ${
-            sidebarOpen ? 'mr-0' : ''
-          }`}
+          className={`flex-1 min-w-0 transition-all duration-300 ${sidebarOpen ? 'mr-0' : ''
+            }`}
         >
           <VideoGrid />
 
@@ -393,11 +384,10 @@ export default function MeetingRoom() {
                     <button
                       key={tab}
                       onClick={() => useUIStore.getState().setSidebarTab(tab)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
-                        sidebarTab === tab
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${sidebarTab === tab
                           ? 'bg-cyan/15 text-cyan'
                           : 'text-white/40 hover:text-white/60 hover:bg-white/5'
-                      }`}
+                        }`}
                     >
                       {tab}
                     </button>

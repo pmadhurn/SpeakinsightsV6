@@ -34,7 +34,7 @@ async def _check_redis() -> str:
     try:
         r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
         await r.ping()
-        await r.aclose()
+        await r.close()
         return "connected"
     except Exception as exc:
         logger.warning("Redis health check failed: %s", exc)
@@ -42,15 +42,20 @@ async def _check_redis() -> str:
 
 
 async def _check_livekit() -> str:
-    """Check LiveKit connectivity via HTTP health endpoint."""
+    """Check LiveKit Cloud connectivity via API."""
     try:
-        # LiveKit HTTP API is on port 7880 by default
-        url = settings.LIVEKIT_URL.replace("ws://", "http://").replace("wss://", "https://")
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(url)
-            if resp.status_code == 200:
-                return "connected"
-            return "error"
+        if not settings.LIVEKIT_URL or not settings.LIVEKIT_API_KEY:
+            return "not_configured"
+        # Use LiveKit API to verify connectivity to LiveKit Cloud
+        from livekit.api import LiveKitAPI, ListRoomsRequest
+        api = LiveKitAPI(
+            url=settings.LIVEKIT_URL,
+            api_key=settings.LIVEKIT_API_KEY,
+            api_secret=settings.LIVEKIT_API_SECRET,
+        )
+        await api.room.list_rooms(ListRoomsRequest())
+        await api.aclose()
+        return "connected"
     except Exception as exc:
         logger.warning("LiveKit health check failed: %s", exc)
         return "disconnected"
