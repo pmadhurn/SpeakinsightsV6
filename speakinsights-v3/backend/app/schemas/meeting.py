@@ -31,6 +31,8 @@ class MeetingResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     participant_count: int = 0
+    duration: Optional[float] = None
+    has_recording: bool = False
 
     model_config = {"from_attributes": True}
 

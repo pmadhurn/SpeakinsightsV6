@@ -12,8 +12,11 @@ export interface Meeting {
   created_at: string;
   started_at?: string;
   ended_at?: string;
+  updated_at?: string;
   duration?: number;
   participant_count: number;
+  max_participants?: number;
+  has_recording?: boolean;
 }
 
 export interface Participant {

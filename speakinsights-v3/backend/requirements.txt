@@ -29,7 +29,7 @@ websockets==13.0
 redis==5.0.0
 
 # LiveKit
-livekit-api==0.7.0
+livekit-api==1.1.0
 
 # Sentiment analysis
 vaderSentiment==3.3.2

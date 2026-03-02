@@ -23,10 +23,11 @@ router = APIRouter()
 
 
 # ---------------------------------------------------------------------------
-# GET / — list installed models
+# GET / — list installed models (accept both /models and /models/)
 # ---------------------------------------------------------------------------
 
 @router.get("", response_model=OllamaModelListResponse)
+@router.get("/", response_model=OllamaModelListResponse)
 async def list_models():
     """List all installed Ollama models with name, size, family, and quantization."""
     try:
@@ -121,23 +122,8 @@ async def delete_model(model_name: str):
 
 
 # ---------------------------------------------------------------------------
-# GET /{model_name} — get model info
-# ---------------------------------------------------------------------------
-
-@router.get("/{model_name:path}")
-async def get_model_info(model_name: str):
-    """Get detailed information about a specific Ollama model."""
-    try:
-        info = await ollama_client.model_info(model_name)
-    except Exception as exc:
-        logger.error("Failed to get info for model %s: %s", model_name, exc)
-        raise HTTPException(status_code=502, detail=f"Failed to get model info: {exc}")
-
-    return info
-
-
-# ---------------------------------------------------------------------------
-# GET /running — show currently loaded/running models
+# GET /status/running — show currently loaded/running models
+# (must be defined BEFORE the catch-all /{model_name:path})
 # ---------------------------------------------------------------------------
 
 @router.get("/status/running")
@@ -152,4 +138,20 @@ async def get_running_models():
     except Exception as exc:
         logger.error("Failed to get running models: %s", exc)
         raise HTTPException(status_code=502, detail=f"Ollama service error: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# GET /{model_name} — get model info (catch-all, MUST be last)
+# ---------------------------------------------------------------------------
+
+@router.get("/{model_name:path}")
+async def get_model_info(model_name: str):
+    """Get detailed information about a specific Ollama model."""
+    try:
+        info = await ollama_client.model_info(model_name)
+    except Exception as exc:
+        logger.error("Failed to get info for model %s: %s", model_name, exc)
+        raise HTTPException(status_code=502, detail=f"Failed to get model info: {exc}")
+
+    return info
 

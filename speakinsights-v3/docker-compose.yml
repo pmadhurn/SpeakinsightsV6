@@ -47,6 +47,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      whisperx:
+        condition: service_healthy
     environment:
       # Database
       - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-speakinsights}@postgres:5432/speakinsights
@@ -142,10 +144,32 @@ services:
           cpus: "0.5"
 
   # ---------------------------------------------------------------------------
-  # LiveKit — Using LiveKit Cloud (no self-hosted container needed)
+  # LiveKit Egress — Used to write LiveKit Cloud recordings to local disk
   # ---------------------------------------------------------------------------
-  # LiveKit and LiveKit Egress are handled by LiveKit Cloud.
-  # Configure via LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET in .env
+  livekit-egress:
+    image: livekit/egress:latest
+    container_name: speakinsights-egress
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      # Use LiveKit Cloud endpoint and credentials directly
+      - EGRESS_CONFIG_FILE=/etc/egress.yaml
+      - REDIS_URL=redis://redis:6379/0
+      - LIVEKIT_URL=${LIVEKIT_URL:-wss://insighthub-hqk8ioh9.livekit.cloud}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+    volumes:
+      - ./egress.yaml:/etc/egress.yaml:ro
+      - ./storage/recordings:/app/storage/recordings
+    networks:
+      - speakinsights-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
 
   # ---------------------------------------------------------------------------
   # WhisperX — Speech-to-text transcription service
@@ -171,6 +195,12 @@ services:
     networks:
       - speakinsights-net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/health')"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
     deploy:
       resources:
         limits:

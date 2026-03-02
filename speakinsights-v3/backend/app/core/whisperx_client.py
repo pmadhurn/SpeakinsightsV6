@@ -81,28 +81,44 @@ class WhisperXClient:
         """
         try:
             lang = language if language != "auto" else None
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                files = {"file": ("chunk.wav", audio_bytes, "audio/wav")}
-                data: dict[str, Any] = {}
-                if lang:
-                    data["language"] = lang
+            max_retries = 2
+            for attempt in range(1, max_retries + 1):
+                try:
+                    async with httpx.AsyncClient(timeout=60.0) as client:
+                        files = {"file": ("chunk.wav", audio_bytes, "audio/wav")}
+                        data: dict[str, Any] = {}
+                        if lang:
+                            data["language"] = lang
+                        if timestamp_offset:
+                            data["timestamp_offset"] = str(timestamp_offset)
 
-                response = await client.post(
-                    f"{self._base_url}/transcribe",
-                    files=files,
-                    data=data,
-                )
-                response.raise_for_status()
+                        response = await client.post(
+                            f"{self._base_url}/transcribe",
+                            files=files,
+                            data=data,
+                        )
+                        response.raise_for_status()
 
-            result = response.json()
-            segments = result.get("segments", result if isinstance(result, list) else [])
-            parsed = self._parse_segments(segments, timestamp_offset)
-            logger.debug(
-                "Transcribed audio chunk: %d segments (offset=%.1fs)",
-                len(parsed),
-                timestamp_offset,
-            )
-            return parsed
+                    result = response.json()
+                    segments = result.get("segments", result if isinstance(result, list) else [])
+                    parsed = self._parse_segments(segments, timestamp_offset)
+                    logger.debug(
+                        "Transcribed audio chunk: %d segments (offset=%.1fs)",
+                        len(parsed),
+                        timestamp_offset,
+                    )
+                    return parsed
+                except (httpx.ReadTimeout, httpx.ConnectError, httpx.ConnectTimeout) as retry_exc:
+                    if attempt < max_retries:
+                        logger.warning(
+                            "WhisperX chunk request failed (attempt %d/%d), retrying: %s",
+                            attempt, max_retries, retry_exc,
+                        )
+                        import asyncio
+                        await asyncio.sleep(3)
+                    else:
+                        raise
+            return []  # unreachable
         except httpx.HTTPStatusError as exc:
             logger.error(
                 "WhisperX HTTP error %s: %s", exc.response.status_code, exc.response.text
@@ -139,26 +155,41 @@ class WhisperXClient:
 
             mime = "audio/ogg" if path.suffix == ".ogg" else "audio/wav"
 
-            async with httpx.AsyncClient(timeout=300.0) as client:
-                files = {"file": (path.name, audio_bytes, mime)}
-                data: dict[str, Any] = {}
-                if lang:
-                    data["language"] = lang
+            max_retries = 3
+            for attempt in range(1, max_retries + 1):
+                try:
+                    async with httpx.AsyncClient(timeout=600.0) as client:
+                        files = {"file": (path.name, audio_bytes, mime)}
+                        data: dict[str, Any] = {}
+                        if lang:
+                            data["language"] = lang
 
-                response = await client.post(
-                    f"{self._base_url}/transcribe",
-                    files=files,
-                    data=data,
-                )
-                response.raise_for_status()
+                        response = await client.post(
+                            f"{self._base_url}/transcribe-file",
+                            files=files,
+                            data=data,
+                        )
+                        response.raise_for_status()
 
-            result = response.json()
-            segments = result.get("segments", result if isinstance(result, list) else [])
-            parsed = self._parse_segments(segments)
-            logger.info(
-                "Transcribed file %s: %d segments", path.name, len(parsed)
-            )
-            return parsed
+                    result = response.json()
+                    segments = result.get("segments", result if isinstance(result, list) else [])
+                    parsed = self._parse_segments(segments)
+                    logger.info(
+                        "Transcribed file %s: %d segments", path.name, len(parsed)
+                    )
+                    return parsed
+                except (httpx.ReadTimeout, httpx.ConnectError, httpx.ConnectTimeout) as retry_exc:
+                    if attempt < max_retries:
+                        wait = attempt * 10
+                        logger.warning(
+                            "WhisperX request failed (attempt %d/%d), retrying in %ds: %s",
+                            attempt, max_retries, wait, retry_exc,
+                        )
+                        import asyncio
+                        await asyncio.sleep(wait)
+                    else:
+                        raise
+            return []  # unreachable, but satisfies type checker
         except httpx.HTTPStatusError as exc:
             logger.error(
                 "WhisperX HTTP error %s: %s", exc.response.status_code, exc.response.text

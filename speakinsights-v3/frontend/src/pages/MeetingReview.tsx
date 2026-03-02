@@ -83,6 +83,7 @@ export default function MeetingReview() {
         summaries.get(id),
         summaries.getTasks(id),
         summaries.getSentiment(id),
+        recordings.list(id),
       ]);
 
       if (results[0].status === 'fulfilled') setSegments(results[0].value);
@@ -90,9 +91,17 @@ export default function MeetingReview() {
       if (results[2].status === 'fulfilled') setTasks(results[2].value);
       if (results[3].status === 'fulfilled') setSentiment(results[3].value);
 
-      // Recording URLs are direct endpoints, not JSON — just set the paths
-      setRecordingUrl(`/api/recordings/${id}/composite`);
-      setDownloadUrl(`/api/recordings/${id}/download`);
+      // Only set recording URL if files actually exist on disk
+      if (results[4].status === 'fulfilled') {
+        const recData = results[4].value;
+        const hasComposite =
+          (recData?.composite?.length > 0) ||
+          (recData?.disk_files?.length > 0);
+        if (hasComposite) {
+          setRecordingUrl(`/api/recordings/${id}/composite`);
+          setDownloadUrl(`/api/recordings/${id}/download`);
+        }
+      }
     } catch {
       // Meeting might not exist
     } finally {
@@ -306,8 +315,8 @@ export default function MeetingReview() {
                         processingSteps.includes('summary')
                           ? 'completed'
                           : processingSteps.includes('transcription')
-                          ? 'processing'
-                          : 'pending'
+                            ? 'processing'
+                            : 'pending'
                       }
                       label="Generating summary"
                     />
@@ -316,8 +325,8 @@ export default function MeetingReview() {
                         processingSteps.includes('tasks')
                           ? 'completed'
                           : processingSteps.includes('summary')
-                          ? 'processing'
-                          : 'pending'
+                            ? 'processing'
+                            : 'pending'
                       }
                       label="Extracting tasks"
                     />
@@ -326,8 +335,8 @@ export default function MeetingReview() {
                         processingSteps.includes('sentiment')
                           ? 'completed'
                           : processingSteps.includes('tasks')
-                          ? 'processing'
-                          : 'pending'
+                            ? 'processing'
+                            : 'pending'
                       }
                       label="Analyzing sentiment"
                     />
@@ -345,11 +354,10 @@ export default function MeetingReview() {
                         <button
                           key={tab.key}
                           onClick={() => setActiveTab(tab.key)}
-                          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                            activeTab === tab.key
+                          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium transition-all ${activeTab === tab.key
                               ? 'bg-cyan/15 text-cyan border border-cyan/30'
                               : 'bg-white/5 text-white/50 border border-transparent hover:bg-white/10 hover:text-white/70'
-                          }`}
+                            }`}
                         >
                           <Icon size={14} />
                           {tab.label}

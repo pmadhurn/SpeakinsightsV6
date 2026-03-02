@@ -1,0 +1,407 @@
+INFO:     Will watch for changes in these directories: ['/app']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [1] using WatchFiles
+2026-03-02 10:04:45 | INFO     | speakinsights | Mounted /storage → /app/storage
+INFO:     Started server process [8]
+INFO:     Waiting for application startup.
+2026-03-02 10:04:45 | INFO     | speakinsights | ╔══════════════════════════════════════════╗
+2026-03-02 10:04:45 | INFO     | speakinsights | ║   SpeakInsights v3 API — starting up     ║
+2026-03-02 10:04:45 | INFO     | speakinsights | ╚══════════════════════════════════════════╝
+2026-03-02 10:04:45 | INFO     | speakinsights | Database tables created / verified.
+2026-03-02 10:04:45 | INFO     | speakinsights | Storage directories verified: /app/storage
+INFO:     Application startup complete.
+2026-03-02 10:04:46 | INFO     | httpx | HTTP Request: GET https://insighthub-hqk8ioh9.livekit.cloud "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:41792 - "GET /health HTTP/1.1" 200 OK
+2026-03-02 10:04:51 | INFO     | httpx | HTTP Request: GET http://ollama:11434/api/tags "HTTP/1.1 200 OK"
+2026-03-02 10:04:51 | INFO     | speakinsights | ─── Service connectivity check ───
+2026-03-02 10:04:51 | INFO     | speakinsights |   PostgreSQL    connected ✓
+2026-03-02 10:04:51 | WARNING  | speakinsights |   Redis         FAILED ('Redis' object has no attribute 'aclose')
+2026-03-02 10:04:51 | INFO     | speakinsights |   LiveKit       connected ✓
+2026-03-02 10:04:51 | WARNING  | speakinsights |   WhisperX      FAILED ()
+2026-03-02 10:04:51 | INFO     | speakinsights |   Ollama        connected ✓
+2026-03-02 10:04:51 | INFO     | speakinsights | ──────────────────────────────────
+INFO:     127.0.0.1:45954 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44118 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45724 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47094 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42842 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46656 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43424 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52462 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47150 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36414 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60248 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38482 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53782 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42436 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47092 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58592 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55830 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34006 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43378 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50442 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53372 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59104 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36830 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51688 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50402 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59722 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56968 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55574 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43150 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48006 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48982 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55042 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33530 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36442 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50540 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39200 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52160 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46118 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49698 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53200 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48214 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47020 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37154 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33678 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42020 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57062 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42458 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59866 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40010 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41784 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36042 - "GET /api/meetings/02f9d6be-5715-484f-9f37-fe5bbe5298da HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36044 - "GET /api/summaries/02f9d6be-5715-484f-9f37-fe5bbe5298da HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36064 - "GET /api/summaries/02f9d6be-5715-484f-9f37-fe5bbe5298da/tasks HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36050 - "GET /api/transcriptions/02f9d6be-5715-484f-9f37-fe5bbe5298da HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36060 - "GET /api/summaries/02f9d6be-5715-484f-9f37-fe5bbe5298da/sentiment HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36066 - "GET /api/recordings/02f9d6be-5715-484f-9f37-fe5bbe5298da HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46194 - "GET /health HTTP/1.1" 200 OK
+2026-03-02 10:18:09 | INFO     | app.core.livekit_service | Created room: si-room-si-0caa9a37 (max=20)
+2026-03-02 10:18:09 | INFO     | app.api.routes.meetings | Created meeting 'test 23' (code=si-0caa9a37)
+INFO:     172.18.0.2:51382 - "POST /api/meetings HTTP/1.1" 201 Created
+INFO:     127.0.0.1:55618 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49730 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.2:50844 - "GET /api/meetings/code/si-0caa9a37 HTTP/1.1" 200 OK
+2026-03-02 10:18:37 | INFO     | app.core.livekit_service | Generated token for madhur in room si-room-si-0caa9a37 (host=True)
+INFO:     172.18.0.2:50860 - "POST /api/meetings/cd830cf7-819d-4336-b557-1f269e263cb0/join HTTP/1.1" 200 OK
+INFO:     172.18.0.2:50870 - "GET /api/meetings/cd830cf7-819d-4336-b557-1f269e263cb0 HTTP/1.1" 200 OK
+INFO:     ('172.18.0.2', 50880) - "WebSocket /ws/lobby/cd830cf7-819d-4336-b557-1f269e263cb0?role=host" [accepted]
+2026-03-02 10:18:38 | INFO     | app.websockets.lobby_ws | Host connected to lobby for meeting cd830cf7-819d-4336-b557-1f269e263cb0
+INFO:     connection open
+2026-03-02 10:18:39 | INFO     | app.api.routes.meetings | Participant 'priyanshu' waiting for approval in meeting cd830cf7-819d-4336-b557-1f269e263cb0
+INFO:     172.18.0.2:50890 - "POST /api/meetings/cd830cf7-819d-4336-b557-1f269e263cb0/join HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37960 - "GET /health HTTP/1.1" 200 OK
+2026-03-02 10:18:51 | INFO     | app.websockets.lobby_ws | Host disconnected from lobby for meeting cd830cf7-819d-4336-b557-1f269e263cb0
+INFO:     connection closed
+2026-03-02 10:18:59 | ERROR    | app.core.livekit_service | Failed to start composite egress for si-room-si-0caa9a37: TwirpError(code=invalid_argument, message=request has missing or invalid field: output, status=400)
+Traceback (most recent call last):
+  File "/app/app/core/livekit_service.py", line 288, in start_room_composite_egress
+    egress_info = await api.egress.start_room_composite_egress(egress_req)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/livekit/api/egress_service.py", line 41, in start_room_composite_egress
+    return await self._client.request(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/livekit/api/twirp_client.py", line 129, in request
+    raise TwirpError(
+livekit.api.twirp_client.TwirpError: TwirpError(code=invalid_argument, message=request has missing or invalid field: output, status=400)
+2026-03-02 10:18:59 | WARNING  | app.api.routes.meetings | Could not start composite egress: TwirpError(code=invalid_argument, message=request has missing or invalid field: output, status=400)
+2026-03-02 10:18:59 | ERROR    | asyncio | Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x78d5059e33d0>
+2026-03-02 10:18:59 | ERROR    | asyncio | Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x78d503829d30>, 17040.313571228)])']
+connector: <aiohttp.connector.TCPConnector object at 0x78d5037b8e50>
+2026-03-02 10:18:59 | INFO     | app.api.routes.meetings | Started meeting cd830cf7-819d-4336-b557-1f269e263cb0
+INFO:     127.0.0.1:32844 - "GET /health HTTP/1.1" 200 OK
+INFO:     ('172.18.0.2', 45308) - "WebSocket /ws/meeting/cd830cf7-819d-4336-b557-1f269e263cb0" [accepted]
+2026-03-02 10:19:08 | INFO     | app.websockets.meeting_ws | Meeting WS connected for meeting cd830cf7-819d-4336-b557-1f269e263cb0 (total: 1)
+INFO:     connection open
+INFO:     ('172.18.0.2', 45310) - "WebSocket /ws/transcript/cd830cf7-819d-4336-b557-1f269e263cb0" [accepted]
+2026-03-02 10:19:08 | INFO     | app.websockets.transcript_ws | Transcript WS connected for meeting cd830cf7-819d-4336-b557-1f269e263cb0 (total: 1)
+INFO:     connection open
+INFO:     127.0.0.1:44852 - "GET /health HTTP/1.1" 200 OK
+2026-03-02 10:19:29 | INFO     | app.websockets.transcript_ws | Transcript WS disconnected for meeting cd830cf7-819d-4336-b557-1f269e263cb0
+INFO:     connection closed
+2026-03-02 10:19:29 | INFO     | app.websockets.meeting_ws | Meeting WS disconnected for meeting cd830cf7-819d-4336-b557-1f269e263cb0
+INFO:     connection closed
+INFO:     127.0.0.1:32906 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46342 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56924 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56586 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47252 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45282 - "GET /api/meetings HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45288 - "GET /api/meetings/cd830cf7-819d-4336-b557-1f269e263cb0 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45294 - "GET /api/summaries/cd830cf7-819d-4336-b557-1f269e263cb0 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45304 - "GET /api/transcriptions/cd830cf7-819d-4336-b557-1f269e263cb0 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45322 - "GET /api/summaries/cd830cf7-819d-4336-b557-1f269e263cb0/sentiment HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45318 - "GET /api/summaries/cd830cf7-819d-4336-b557-1f269e263cb0/tasks HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45330 - "GET /api/recordings/cd830cf7-819d-4336-b557-1f269e263cb0 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45344 - "GET /api/meetings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44226 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45348 - "GET /api/meetings/cd830cf7-819d-4336-b557-1f269e263cb0 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45350 - "GET /api/transcriptions/cd830cf7-819d-4336-b557-1f269e263cb0 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45368 - "GET /api/recordings/cd830cf7-819d-4336-b557-1f269e263cb0 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45360 - "GET /api/summaries/cd830cf7-819d-4336-b557-1f269e263cb0 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45376 - "GET /api/summaries/cd830cf7-819d-4336-b557-1f269e263cb0/sentiment HTTP/1.1" 200 OK
+INFO:     172.18.0.2:45388 - "GET /api/summaries/cd830cf7-819d-4336-b557-1f269e263cb0/tasks HTTP/1.1" 200 OK
+INFO:     172.18.0.2:60400 - "GET /api/meetings/cd830cf7-819d-4336-b557-1f269e263cb0 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:60416 - "GET /api/meetings/cd830cf7-819d-4336-b557-1f269e263cb0 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:60422 - "GET /api/meetings/code/si-0caa9a37 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49794 - "GET /health HTTP/1.1" 200 OK
+2026-03-02 10:21:08 | INFO     | app.core.livekit_service | Generated token for madhur in room si-room-si-0caa9a37 (host=True)
+INFO:     172.18.0.2:36018 - "POST /api/meetings/cd830cf7-819d-4336-b557-1f269e263cb0/join HTTP/1.1" 200 OK
+INFO:     172.18.0.2:33024 - "GET /api/meetings/cd830cf7-819d-4336-b557-1f269e263cb0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49206 - "GET /health HTTP/1.1" 200 OK
+2026-03-02 10:21:28 | INFO     | app.core.livekit_service | Created room: si-room-si-92d0c82c (max=20)
+2026-03-02 10:21:28 | INFO     | app.api.routes.meetings | Created meeting 'loop[hole' (code=si-92d0c82c)
+INFO:     172.18.0.2:44340 - "POST /api/meetings HTTP/1.1" 201 Created
+INFO:     127.0.0.1:57528 - "GET /health HTTP/1.1" 200 OK
+2026-03-02 10:21:33 | INFO     | app.core.livekit_service | Generated token for madhur in room si-room-si-92d0c82c (host=True)
+INFO:     172.18.0.2:42270 - "POST /api/meetings/1f422b50-65d8-47c3-8a3e-04dbcc686671/join HTTP/1.1" 200 OK
+INFO:     172.18.0.2:42280 - "GET /api/meetings/1f422b50-65d8-47c3-8a3e-04dbcc686671 HTTP/1.1" 200 OK
+INFO:     ('172.18.0.2', 42290) - "WebSocket /ws/lobby/1f422b50-65d8-47c3-8a3e-04dbcc686671?role=host" [accepted]
+2026-03-02 10:21:34 | INFO     | app.websockets.lobby_ws | Host connected to lobby for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+INFO:     connection open
+INFO:     127.0.0.1:41862 - "GET /health HTTP/1.1" 200 OK
+INFO:     ('172.18.0.2', 50424) - "WebSocket /ws/transcript/1f422b50-65d8-47c3-8a3e-04dbcc686671" [accepted]
+2026-03-02 10:21:49 | INFO     | app.websockets.transcript_ws | Transcript WS connected for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671 (total: 1)
+INFO:     connection open
+2026-03-02 10:21:51 | INFO     | app.websockets.lobby_ws | Host disconnected from lobby for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+INFO:     connection closed
+2026-03-02 10:21:51 | INFO     | app.websockets.transcript_ws | Transcript WS disconnected for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+INFO:     connection closed
+2026-03-02 10:21:53 | ERROR    | app.core.livekit_service | Failed to start composite egress for si-room-si-92d0c82c: TwirpError(code=invalid_argument, message=request has missing or invalid field: output, status=400)
+Traceback (most recent call last):
+  File "/app/app/core/livekit_service.py", line 288, in start_room_composite_egress
+    egress_info = await api.egress.start_room_composite_egress(egress_req)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/livekit/api/egress_service.py", line 41, in start_room_composite_egress
+    return await self._client.request(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/livekit/api/twirp_client.py", line 129, in request
+    raise TwirpError(
+livekit.api.twirp_client.TwirpError: TwirpError(code=invalid_argument, message=request has missing or invalid field: output, status=400)
+2026-03-02 10:21:53 | WARNING  | app.api.routes.meetings | Could not start composite egress: TwirpError(code=invalid_argument, message=request has missing or invalid field: output, status=400)
+2026-03-02 10:21:53 | ERROR    | asyncio | Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x78d5059e33d0>
+2026-03-02 10:21:53 | ERROR    | asyncio | Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x78d5037cd320>, 17214.564336947)])']
+connector: <aiohttp.connector.TCPConnector object at 0x78d50380a510>
+2026-03-02 10:21:53 | INFO     | app.api.routes.meetings | Started meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+INFO:     172.18.0.2:50418 - "POST /api/meetings/1f422b50-65d8-47c3-8a3e-04dbcc686671/start HTTP/1.1" 200 OK
+INFO:     172.18.0.2:41022 - "GET /api/meetings/1f422b50-65d8-47c3-8a3e-04dbcc686671 HTTP/1.1" 200 OK
+INFO:     ('172.18.0.2', 41026) - "WebSocket /ws/lobby/1f422b50-65d8-47c3-8a3e-04dbcc686671?role=host" [accepted]
+2026-03-02 10:21:53 | INFO     | app.websockets.lobby_ws | Host connected to lobby for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+INFO:     connection open
+INFO:     172.18.0.2:37436 - "POST /api/meetings/1f422b50-65d8-47c3-8a3e-04dbcc686671/start HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:55786 - "GET /health HTTP/1.1" 200 OK
+INFO:     ('172.18.0.2', 37446) - "WebSocket /ws/transcript/1f422b50-65d8-47c3-8a3e-04dbcc686671" [accepted]
+2026-03-02 10:22:04 | INFO     | app.websockets.transcript_ws | Transcript WS connected for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671 (total: 1)
+INFO:     connection open
+INFO:     ('172.18.0.2', 37450) - "WebSocket /ws/meeting/1f422b50-65d8-47c3-8a3e-04dbcc686671" [accepted]
+2026-03-02 10:22:06 | INFO     | app.websockets.meeting_ws | Meeting WS connected for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671 (total: 1)
+INFO:     connection open
+INFO:     127.0.0.1:53014 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38458 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.2:35554 - "GET /api/meetings/code/si-0caa9a37 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48854 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55550 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32936 - "GET /health HTTP/1.1" 200 OK
+2026-03-02 10:23:27 | INFO     | app.api.routes.meetings | Found 0 egress processes for room si-room-si-92d0c82c
+2026-03-02 10:23:27 | INFO     | app.api.routes.meetings | Collected 0 egress IDs for post-processing download: []
+2026-03-02 10:23:27 | INFO     | app.api.routes.meetings | Ended meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671 (duration=78s), starting post-processing
+INFO:     172.18.0.2:47536 - "POST /api/meetings/1f422b50-65d8-47c3-8a3e-04dbcc686671/end HTTP/1.1" 200 OK
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | === Starting post-processing for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671 ===
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | [Step 0] No egress IDs provided — skipping recording download for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+2026-03-02 10:23:27 | WARNING  | app.core.post_processing | No individual recordings found for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | [Step 1-2] Transcribed 0 segments for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | [Step 3] Merged transcript: 0 chars, 0 speakers
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | No segments to chunk/embed for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | [Step 4-5] Chunking and embedding complete for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | No transcript text to summarise for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | [Step 6] Summarisation complete for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | [Step 7] Extracted 0 tasks for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | [Step 8] Deep sentiment analysis complete for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | No tasks with due dates — skipping .ics generation for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | [Step 9] Calendar export complete for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | [Step 10] Meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671 marked as completed
+2026-03-02 10:23:27 | INFO     | app.core.post_processing | === Post-processing complete for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671 ===
+2026-03-02 10:23:28 | INFO     | app.websockets.transcript_ws | Transcript WS disconnected for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+INFO:     connection closed
+2026-03-02 10:23:30 | INFO     | app.websockets.meeting_ws | Meeting WS disconnected for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+INFO:     connection closed
+2026-03-02 10:23:32 | INFO     | app.websockets.lobby_ws | Host disconnected from lobby for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+INFO:     connection closed
+INFO:     127.0.0.1:43640 - "GET /health HTTP/1.1" 200 OK
+2026-03-02 10:23:38 | ERROR    | app.core.whisperx_client | Failed to transcribe audio chunk: 
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 69, in map_httpcore_exceptions
+    yield
+  File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 373, in handle_async_request
+    resp = await self._pool.handle_async_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
+    raise exc from None
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
+    response = await connection.handle_async_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection.py", line 103, in handle_async_request
+    return await self._connection.handle_async_request(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/http11.py", line 136, in handle_async_request
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/http11.py", line 106, in handle_async_request
+    ) = await self._receive_response_headers(**kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/http11.py", line 177, in _receive_response_headers
+    event = await self._receive_event(timeout=timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/http11.py", line 217, in _receive_event
+    data = await self._network_stream.read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_backends/anyio.py", line 32, in read
+    with map_exceptions(exc_map):
+  File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ReadTimeout
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/app/core/whisperx_client.py", line 90, in transcribe_audio_chunk
+    response = await client.post(
+               ^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1892, in post
+    return await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1574, in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1661, in send
+    response = await self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1689, in _send_handling_auth
+    response = await self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1726, in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1763, in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 372, in handle_async_request
+    with map_httpcore_exceptions():
+  File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 86, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ReadTimeout
+2026-03-02 10:23:38 | ERROR    | app.api.routes.transcriptions | WhisperX transcription failed: 
+INFO:     172.18.0.2:35552 - "POST /api/transcriptions/1f422b50-65d8-47c3-8a3e-04dbcc686671/chunk HTTP/1.1" 502 Bad Gateway
+INFO:     172.18.0.2:38398 - "GET /api/meetings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55996 - "GET /health HTTP/1.1" 200 OK
+2026-03-02 10:23:54 | ERROR    | app.core.whisperx_client | Failed to transcribe audio chunk: 
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 69, in map_httpcore_exceptions
+    yield
+  File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 373, in handle_async_request
+    resp = await self._pool.handle_async_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
+    raise exc from None
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
+    response = await connection.handle_async_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection.py", line 103, in handle_async_request
+    return await self._connection.handle_async_request(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/http11.py", line 136, in handle_async_request
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/http11.py", line 106, in handle_async_request
+    ) = await self._receive_response_headers(**kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/http11.py", line 177, in _receive_response_headers
+    event = await self._receive_event(timeout=timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/http11.py", line 217, in _receive_event
+    data = await self._network_stream.read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_backends/anyio.py", line 32, in read
+    with map_exceptions(exc_map):
+  File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ReadTimeout
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/app/core/whisperx_client.py", line 90, in transcribe_audio_chunk
+    response = await client.post(
+               ^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1892, in post
+    return await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1574, in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1661, in send
+    response = await self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1689, in _send_handling_auth
+    response = await self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1726, in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1763, in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 372, in handle_async_request
+    with map_httpcore_exceptions():
+  File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 86, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ReadTimeout
+2026-03-02 10:23:54 | ERROR    | app.api.routes.transcriptions | WhisperX transcription failed: 
+INFO:     172.18.0.2:53212 - "POST /api/transcriptions/1f422b50-65d8-47c3-8a3e-04dbcc686671/chunk HTTP/1.1" 502 Bad Gateway
+INFO:     172.18.0.2:53828 - "GET /api/meetings/1f422b50-65d8-47c3-8a3e-04dbcc686671 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:53842 - "GET /api/summaries/1f422b50-65d8-47c3-8a3e-04dbcc686671/tasks HTTP/1.1" 200 OK
+INFO:     172.18.0.2:53852 - "GET /api/transcriptions/1f422b50-65d8-47c3-8a3e-04dbcc686671 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:53868 - "GET /api/summaries/1f422b50-65d8-47c3-8a3e-04dbcc686671 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:53844 - "GET /api/summaries/1f422b50-65d8-47c3-8a3e-04dbcc686671/sentiment HTTP/1.1" 200 OK
+INFO:     172.18.0.2:53880 - "GET /api/recordings/1f422b50-65d8-47c3-8a3e-04dbcc686671 HTTP/1.1" 200 OK
+2026-03-02 10:23:56 | INFO     | app.websockets.meeting_ws | Meeting WS connected for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671 (total: 1)
+INFO:     ('172.18.0.2', 53896) - "WebSocket /ws/meeting/1f422b50-65d8-47c3-8a3e-04dbcc686671" [accepted]
+INFO:     connection open
+2026-03-02 10:23:56 | INFO     | app.websockets.meeting_ws | Meeting WS disconnected for meeting 1f422b50-65d8-47c3-8a3e-04dbcc686671
+INFO:     connection closed
+INFO:     127.0.0.1:35334 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.2:33760 - "GET /api/meetings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37230 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38236 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35690 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55074 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50362 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48902 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33344 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41016 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51038 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54014 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36400 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33630 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47014 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40694 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44752 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49630 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34806 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58834 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54744 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33058 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45716 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43632 - "GET /health HTTP/1.1" 200 OK

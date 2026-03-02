@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.calendar_generator import calendar_generator
+from app.core.livekit_service import livekit_service
 from app.core.ollama_client import ollama_client
 from app.core.recording_manager import recording_manager
 from app.core.sentiment_service import sentiment_service
@@ -24,7 +25,7 @@ from app.db.database import async_session_factory
 from app.models.calendar_export import CalendarExport
 from app.models.embedding import TranscriptEmbedding
 from app.models.meeting import Meeting
-from app.models.recording import IndividualRecording
+from app.models.recording import IndividualRecording, Recording
 from app.models.summary import Summary
 from app.models.task import Task
 from app.models.transcription import TranscriptionSegment
@@ -36,6 +37,7 @@ class PostProcessingPipeline:
     """Post-meeting processing pipeline.
 
     Runs as a background task after a meeting ends:
+      0. Download recordings from LiveKit Cloud (if egress IDs provided)
       1. Transcribe individual audio tracks via WhisperX
       2. Run VADER sentiment on each segment
       3. Merge all segments into a chronological transcript
@@ -55,7 +57,11 @@ class PostProcessingPipeline:
     # Main entry point
     # ------------------------------------------------------------------
 
-    async def process_meeting(self, meeting_id: str) -> None:
+    async def process_meeting(
+        self,
+        meeting_id: str,
+        egress_ids: list[str] | None = None,
+    ) -> None:
         """Orchestrate the full post-meeting pipeline.
 
         Each step is wrapped in its own try/except so that a failure in
@@ -63,6 +69,7 @@ class PostProcessingPipeline:
 
         Args:
             meeting_id: UUID of the meeting to process.
+            egress_ids: Optional list of egress IDs to download recordings from.
         """
         logger.info("=== Starting post-processing for meeting %s ===", meeting_id)
 
@@ -74,6 +81,16 @@ class PostProcessingPipeline:
                 .values(status="processing")
             )
             await db.commit()
+
+        # Step 0: Download recordings from LiveKit Cloud
+        if egress_ids:
+            try:
+                await self._step_download_recordings(meeting_id, egress_ids)
+                logger.info("[Step 0] Recording download complete for meeting %s", meeting_id)
+            except Exception as exc:
+                logger.error("[Step 0] Recording download failed for meeting %s: %s", meeting_id, exc, exc_info=True)
+        else:
+            logger.info("[Step 0] No egress IDs provided — skipping recording download for meeting %s", meeting_id)
 
         all_segments: list[dict[str, Any]] = []
 
@@ -150,6 +167,90 @@ class PostProcessingPipeline:
             pass
 
         logger.info("=== Post-processing complete for meeting %s ===", meeting_id)
+
+    # ------------------------------------------------------------------
+    # Step 0: Download recordings from LiveKit Cloud
+    # ------------------------------------------------------------------
+
+    async def _step_download_recordings(
+        self,
+        meeting_id: str,
+        egress_ids: list[str],
+    ) -> None:
+        """Download recording files from LiveKit Cloud egress.
+
+        LiveKit Cloud stores egress recordings on its infrastructure.
+        After egress completes, we download the files to local storage.
+        Also updates the Recording DB records with actual file paths and sizes.
+        """
+        for egress_id in egress_ids:
+            try:
+                logger.info(
+                    "Downloading egress %s for meeting %s from LiveKit Cloud...",
+                    egress_id, meeting_id,
+                )
+                saved_files = await livekit_service.download_egress_recording(
+                    egress_id=egress_id,
+                    meeting_id=meeting_id,
+                    wait=True,
+                )
+
+                if saved_files:
+                    logger.info(
+                        "Downloaded %d recording files for egress %s: %s",
+                        len(saved_files), egress_id, saved_files,
+                    )
+
+                    # Update the Recording DB record with actual file info
+                    async with async_session_factory() as db:
+                        result = await db.execute(
+                            select(Recording).where(
+                                Recording.meeting_id == uuid.UUID(meeting_id),
+                                Recording.egress_id == egress_id,
+                            )
+                        )
+                        recording = result.scalar_one_or_none()
+                        if recording:
+                            recording.file_path = saved_files[0]
+                            recording.status = "completed"
+                            try:
+                                import os
+                                recording.file_size = os.path.getsize(saved_files[0])
+                            except Exception:
+                                pass
+                            try:
+                                recording.duration = await recording_manager.get_audio_duration(saved_files[0])
+                            except Exception:
+                                pass
+                            recording.completed_at = datetime.utcnow()
+                            await db.commit()
+                            logger.info(
+                                "Updated recording DB record for egress %s (size=%s)",
+                                egress_id, recording.file_size,
+                            )
+                else:
+                    logger.warning(
+                        "No files downloaded for egress %s — recording may not be available",
+                        egress_id,
+                    )
+                    # Mark recording as failed if no files were downloaded
+                    async with async_session_factory() as db:
+                        result = await db.execute(
+                            select(Recording).where(
+                                Recording.meeting_id == uuid.UUID(meeting_id),
+                                Recording.egress_id == egress_id,
+                            )
+                        )
+                        recording = result.scalar_one_or_none()
+                        if recording:
+                            recording.status = "failed"
+                            await db.commit()
+
+            except Exception as exc:
+                logger.error(
+                    "Failed to download egress %s for meeting %s: %s",
+                    egress_id, meeting_id, exc, exc_info=True,
+                )
 
     # ------------------------------------------------------------------
     # Step 1-2: Transcribe individual tracks + VADER sentiment

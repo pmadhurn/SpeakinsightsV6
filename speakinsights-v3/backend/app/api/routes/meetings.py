@@ -20,7 +20,7 @@ from app.core.post_processing import post_processing
 from app.core.recording_manager import recording_manager
 from app.models.meeting import Meeting
 from app.models.participant import Participant
-from app.models.recording import Recording
+from app.models.recording import IndividualRecording, Recording
 from app.schemas.meeting import (
     JoinRequest,
     JoinResponse,
@@ -51,6 +51,15 @@ async def _meeting_to_response(meeting: Meeting, db: AsyncSession) -> MeetingRes
     )
     participant_count = count_result.scalar() or 0
 
+    # Compute duration from timestamps
+    duration = None
+    if meeting.started_at and meeting.ended_at:
+        duration = (meeting.ended_at - meeting.started_at).total_seconds()
+
+    # Check if recording files exist on disk
+    disk_recordings = recording_manager.list_meeting_recordings(str(meeting.id))
+    has_recording = len(disk_recordings) > 0
+
     return MeetingResponse(
         id=meeting.id,
         title=meeting.title,
@@ -65,6 +74,8 @@ async def _meeting_to_response(meeting: Meeting, db: AsyncSession) -> MeetingRes
         created_at=meeting.created_at,
         updated_at=meeting.updated_at,
         participant_count=participant_count,
+        duration=duration,
+        has_recording=has_recording,
     )
 
 
@@ -299,14 +310,28 @@ async def approve_participant(
     )
 
     # Start individual audio track egress (best-effort, may fail if not yet connected)
+    egress_id = None
     try:
-        await livekit_service.start_track_egress(
+        egress_id = await livekit_service.start_track_egress(
             room_name=meeting.livekit_room_name,
             participant_identity=participant.display_name,
             meeting_id=str(meeting_id),
         )
     except Exception as exc:
         logger.warning("Could not start track egress for %s: %s", participant.display_name, exc)
+
+    # Create IndividualRecording DB record for post-processing transcription
+    individual_rec = IndividualRecording(
+        id=uuid.uuid4(),
+        meeting_id=meeting_id,
+        participant_id=participant.id,
+        speaker_name=participant.display_name,
+        egress_id=egress_id,
+        file_path=recording_manager.get_individual_track_path(str(meeting_id), participant.display_name),
+        status="recording" if egress_id else "pending",
+    )
+    db.add(individual_rec)
+    await db.flush()
 
     logger.info("Approved participant '%s' in meeting %s", participant.display_name, meeting_id)
     return JoinResponse(
@@ -383,6 +408,38 @@ async def start_meeting(
         db.add(recording)
         await db.flush()
 
+    # Start individual track egress for the host (for speaker-attributed transcription)
+    host_result = await db.execute(
+        select(Participant).where(
+            Participant.meeting_id == meeting_id,
+            Participant.is_host == True,
+        )
+    )
+    host = host_result.scalar_one_or_none()
+    if host:
+        host_egress_id = None
+        try:
+            host_egress_id = await livekit_service.start_track_egress(
+                room_name=meeting.livekit_room_name,
+                participant_identity=host.display_name,
+                meeting_id=str(meeting_id),
+            )
+        except Exception as exc:
+            logger.warning("Could not start track egress for host %s: %s", host.display_name, exc)
+
+        # Create IndividualRecording for the host
+        host_rec = IndividualRecording(
+            id=uuid.uuid4(),
+            meeting_id=meeting_id,
+            participant_id=host.id,
+            speaker_name=host.display_name,
+            egress_id=host_egress_id,
+            file_path=recording_manager.get_individual_track_path(str(meeting_id), host.display_name),
+            status="recording" if host_egress_id else "pending",
+        )
+        db.add(host_rec)
+        await db.flush()
+
     logger.info("Started meeting %s", meeting_id)
     return {"status": "active", "meeting_id": str(meeting_id), "egress_id": egress_id}
 
@@ -413,21 +470,29 @@ async def end_meeting(
 
     await db.flush()
 
-    # Stop all egress processes (best-effort)
+    # Stop all egress processes and collect their IDs for downloading
+    egress_ids: list[str] = []
     try:
         egress_list = await livekit_service.list_egress(meeting.livekit_room_name)
+        logger.info("Found %d egress processes for room %s", len(egress_list), meeting.livekit_room_name)
         for egress in egress_list:
-            try:
-                eid = egress.egress_id if hasattr(egress, 'egress_id') else egress.get('egress_id')
-                if eid:
+            eid = egress.egress_id if hasattr(egress, 'egress_id') else egress.get('egress_id')
+            if eid:
+                # Always collect the egress ID for downloading, even if stop fails
+                egress_ids.append(eid)
+                try:
                     await livekit_service.stop_egress(eid)
-            except Exception as exc:
-                logger.warning("Failed to stop egress: %s", exc)
+                except Exception as exc:
+                    logger.warning("Failed to stop egress %s (will still try to download): %s", eid, exc)
     except Exception as exc:
         logger.warning("Failed to list/stop egress: %s", exc)
 
-    # Trigger post-processing as background task
-    background_tasks.add_task(post_processing.process_meeting, str(meeting_id))
+    logger.info("Collected %d egress IDs for post-processing download: %s", len(egress_ids), egress_ids)
+
+    # Trigger post-processing as background task (with egress IDs for download)
+    background_tasks.add_task(
+        post_processing.process_meeting, str(meeting_id), egress_ids
+    )
 
     logger.info("Ended meeting %s (duration=%.0fs), starting post-processing", meeting_id, duration)
     return {

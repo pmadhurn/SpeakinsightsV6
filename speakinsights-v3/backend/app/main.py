@@ -77,7 +77,7 @@ async def _check_service_connectivity() -> None:
     try:
         r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
         await r.ping()
-        await r.aclose()
+        await r.close()
         results["Redis"] = "connected ✓"
     except Exception as exc:
         results["Redis"] = f"FAILED ({exc})"
@@ -91,13 +91,22 @@ async def _check_service_connectivity() -> None:
     except Exception as exc:
         results["LiveKit"] = f"FAILED ({exc})"
 
-    # WhisperX
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{settings.WHISPERX_URL}/health")
-            results["WhisperX"] = "connected ✓" if resp.status_code == 200 else f"HTTP {resp.status_code}"
-    except Exception as exc:
-        results["WhisperX"] = f"FAILED ({exc})"
+    # WhisperX (model loading can take a while — retry with longer timeout)
+    whisperx_ok = False
+    for _attempt in range(3):
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.get(f"{settings.WHISPERX_URL}/health")
+                if resp.status_code == 200:
+                    results["WhisperX"] = "connected ✓"
+                    whisperx_ok = True
+                    break
+                else:
+                    results["WhisperX"] = f"HTTP {resp.status_code}"
+        except Exception as exc:
+            results["WhisperX"] = f"FAILED ({exc})"
+        if not whisperx_ok:
+            await asyncio.sleep(10)
 
     # Ollama
     try:

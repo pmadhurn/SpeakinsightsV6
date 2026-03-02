@@ -1,0 +1,9 @@
+﻿2026-03-02 09:15:24 | ERROR    | app.core.livekit_service | Failed to start composite egress for si-room-si-c923df5f: ('invalid_argument', 'request has missing or invalid field: output')
+  File "/app/app/core/livekit_service.py", line 284, in start_room_composite_egress
+    egress_info = await api.egress.start_room_composite_egress(egress_req)
+  File "/usr/local/lib/python3.11/site-packages/livekit/api/egress_service.py", line 18, in start_room_composite_egress
+2026-03-02 09:15:24 | WARNING  | app.api.routes.meetings | Could not start composite egress: ('invalid_argument', 'request has missing or invalid field: output')
+2026-03-02 09:16:41 | INFO     | app.api.routes.meetings | Ended meeting 81d9ed93-fcb2-4d41-98b3-3f8f5e3da5a5 (duration=74s), starting post-processing
+2026-03-02 09:16:41 | INFO     | app.core.post_processing | === Starting post-processing for meeting 81d9ed93-fcb2-4d41-98b3-3f8f5e3da5a5 ===
+2026-03-02 09:16:41 | INFO     | app.core.post_processing | [Step 0] No egress IDs provided ΓÇö skipping recording download for meeting 81d9ed93-fcb2-4d41-98b3-3f8f5e3da5a5
+2026-03-02 09:16:41 | INFO     | app.core.post_processing | === Post-processing complete for meeting 81d9ed93-fcb2-4d41-98b3-3f8f5e3da5a5 ===
