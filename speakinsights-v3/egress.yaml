@@ -2,8 +2,15 @@
 # LiveKit Egress Configuration — SpeakInsights v3
 # =============================================================================
 
+<<<<<<< HEAD
 # LiveKit server connection (Credentials provided via environment variables)
 # LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
+=======
+# LiveKit server connection
+api_key: devkey
+api_secret: devsecret1234567890abcdef12345678
+ws_url: ws://livekit:7880
+>>>>>>> 8a0df8f68ed615c0b531385e5fca31e1962f5832
 
 # Redis for job queue
 redis:
