@@ -18,6 +18,7 @@ from livekit.api import (
     CreateRoomRequest,
     ListParticipantsRequest,
     RoomCompositeEgressRequest,
+    TrackCompositeEgressRequest,
     TrackEgressRequest,
     StopEgressRequest,
     ListEgressRequest,
@@ -205,12 +206,6 @@ class LiveKitService:
         """
         try:
             api = self._get_api()
-            # LiveKit Cloud needs a local Egress worker to write local files.
-            # We provide a filepath so LiveKit Cloud routes the recording job
-            # explicitly to our self-hosted Egress worker.
-            file_name = f"{participant_identity}_{meeting_id or 'unknown'}.ogg"
-            output_path = f"{self._storage_path}/recordings/{meeting_id or 'misc'}/{file_name}"
-            output = DirectFileOutput(filepath=output_path)
 
             # List room participants to find the audio track SID
             req = ListParticipantsRequest(room=room_name)
@@ -219,15 +214,25 @@ class LiveKitService:
             for p in participants_resp.participants:
                 if p.identity == participant_identity:
                     for track in p.tracks:
-                        if track.type == 1:  # AUDIO
+                        if track.type == 0:  # AUDIO (TrackType.AUDIO=0, VIDEO=1)
                             track_sid = track.sid
                             break
                     break
 
             if not track_sid:
-                raise ValueError(
-                    f"No audio track found for participant {participant_identity} in {room_name}"
+                logger.warning(
+                    "No audio track found for participant %s in %s — "
+                    "participant may not have published yet, skipping track egress",
+                    participant_identity,
+                    room_name,
                 )
+                await api.aclose()
+                return None
+
+            # Self-hosted egress worker writes directly to local storage.
+            file_name = f"{participant_identity}_{meeting_id or 'unknown'}.ogg"
+            output_path = f"{self._storage_path}/recordings/{meeting_id or 'misc'}/{file_name}"
+            output = DirectFileOutput(filepath=output_path)
 
             egress_req = TrackEgressRequest(
                 room_name=room_name,
@@ -238,7 +243,7 @@ class LiveKitService:
 
             egress_id = egress_info.egress_id
             logger.info(
-                "Started track egress %s for %s in %s (LiveKit Cloud storage)",
+                "Started track egress %s for %s in %s",
                 egress_id,
                 participant_identity,
                 room_name,
@@ -248,6 +253,91 @@ class LiveKitService:
         except Exception as exc:
             logger.error(
                 "Failed to start track egress for %s: %s",
+                participant_identity,
+                exc,
+                exc_info=True,
+            )
+            raise
+
+    async def start_track_composite_egress(
+        self,
+        room_name: str,
+        participant_identity: str,
+        meeting_id: Optional[str] = None,
+    ) -> str:
+        """Start a track-composite egress that records BOTH audio+video of a participant.
+
+        This produces a single MP4 file with video and audio, which is ideal
+        for playback in the meeting review page.  Unlike room-composite egress
+        (which needs an embedded Chrome and often fails with 'Start signal not
+        received'), track-composite directly muxes the participant's published
+        tracks without a browser.
+
+        Args:
+            room_name: LiveKit room name.
+            participant_identity: Identity of the participant to record.
+            meeting_id: Optional meeting UUID for file naming.
+
+        Returns:
+            Egress ID string, or None if participant has no tracks.
+        """
+        try:
+            api = self._get_api()
+
+            # Find the participant's audio and video track SIDs
+            req = ListParticipantsRequest(room=room_name)
+            participants_resp = await api.room.list_participants(req)
+            audio_track_sid: Optional[str] = None
+            video_track_sid: Optional[str] = None
+
+            for p in participants_resp.participants:
+                if p.identity == participant_identity:
+                    for track in p.tracks:
+                        if track.type == 0:  # AUDIO
+                            audio_track_sid = track.sid
+                        elif track.type == 1:  # VIDEO
+                            video_track_sid = track.sid
+                    break
+
+            if not audio_track_sid and not video_track_sid:
+                logger.warning(
+                    "No tracks found for participant %s in %s — skipping track composite egress",
+                    participant_identity,
+                    room_name,
+                )
+                await api.aclose()
+                return None
+
+            file_name = f"{participant_identity}_{meeting_id or 'unknown'}.mp4"
+            output_path = f"{self._storage_path}/recordings/{meeting_id or 'misc'}/{file_name}"
+
+            output = EncodedFileOutput(
+                file_type=EncodedFileType.MP4,
+                filepath=output_path,
+            )
+
+            egress_req = TrackCompositeEgressRequest(
+                room_name=room_name,
+                audio_track_id=audio_track_sid or "",
+                video_track_id=video_track_sid or "",
+                file=output,
+            )
+            egress_info = await api.egress.start_track_composite_egress(egress_req)
+
+            egress_id = egress_info.egress_id
+            logger.info(
+                "Started track composite egress %s for %s in %s (audio=%s, video=%s)",
+                egress_id,
+                participant_identity,
+                room_name,
+                audio_track_sid,
+                video_track_sid,
+            )
+            await api.aclose()
+            return egress_id
+        except Exception as exc:
+            logger.error(
+                "Failed to start track composite egress for %s: %s",
                 participant_identity,
                 exc,
                 exc_info=True,
@@ -274,9 +364,8 @@ class LiveKitService:
         """
         try:
             api = self._get_api()
-            # LiveKit Cloud needs a local Egress worker to write local files.
-            # We provide a filepath so LiveKit Cloud routes the recording job
-            # explicitly to our self-hosted Egress worker instead of its own cloud workers.
+
+            # Self-hosted egress worker writes directly to local storage.
             file_name = f"composite_{meeting_id or 'unknown'}.mp4"
             output_path = f"{self._storage_path}/recordings/{meeting_id or 'misc'}/{file_name}"
 
@@ -294,7 +383,7 @@ class LiveKitService:
 
             egress_id = egress_info.egress_id
             logger.info(
-                "Started composite egress %s for room %s (LiveKit Cloud storage)",
+                "Started composite egress %s for room %s",
                 egress_id,
                 room_name,
             )

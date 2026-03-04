@@ -9,7 +9,7 @@ import secrets
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -42,6 +42,19 @@ router = APIRouter()
 def _generate_code() -> str:
     """Generate a unique meeting code like 'si-a1b2c3d4'."""
     return f"si-{secrets.token_hex(4)}"
+
+
+def _get_livekit_external_url(request: Request) -> str:
+    """Build a full LiveKit WebSocket URL from the incoming request's domain.
+
+    This allows the same codebase to work across multiple tunnel domains
+    (e.g. mac.madhur.dev, meetings.madhur.dev) without changing .env.
+    The frontend nginx proxies /livekit-ws/ to livekit-server:7880.
+    """
+    proto = request.headers.get("x-forwarded-proto", "http")
+    ws_proto = "wss" if proto == "https" else "ws"
+    host = request.headers.get("host", "localhost")
+    return f"{ws_proto}://{host}/livekit-ws/"
 
 
 async def _meeting_to_response(meeting: Meeting, db: AsyncSession) -> MeetingResponse:
@@ -202,6 +215,7 @@ async def get_meeting(
 async def join_meeting(
     meeting_id: uuid.UUID,
     data: JoinRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """Request to join a meeting.
@@ -243,7 +257,7 @@ async def join_meeting(
             return JoinResponse(
                 token=token,
                 room_id=meeting.livekit_room_name,
-                livekit_url=settings.LIVEKIT_EXTERNAL_URL,
+                livekit_url=_get_livekit_external_url(request),
                 participant_id=host.id,
             )
 
@@ -271,6 +285,7 @@ async def join_meeting(
 async def approve_participant(
     meeting_id: uuid.UUID,
     participant_id: uuid.UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """Host approves a waiting participant.
@@ -309,16 +324,27 @@ async def approve_participant(
         is_host=False,
     )
 
-    # Start individual audio track egress (best-effort, may fail if not yet connected)
-    egress_id = None
+    # Start track-composite egress (audio+video in one MP4) for review playback
+    composite_egress_id = None
     try:
-        egress_id = await livekit_service.start_track_egress(
+        composite_egress_id = await livekit_service.start_track_composite_egress(
             room_name=meeting.livekit_room_name,
             participant_identity=participant.display_name,
             meeting_id=str(meeting_id),
         )
     except Exception as exc:
-        logger.warning("Could not start track egress for %s: %s", participant.display_name, exc)
+        logger.warning("Could not start track composite egress for %s: %s", participant.display_name, exc)
+
+    # Start individual audio track egress (best-effort, for transcription)
+    audio_egress_id = None
+    try:
+        audio_egress_id = await livekit_service.start_track_egress(
+            room_name=meeting.livekit_room_name,
+            participant_identity=participant.display_name,
+            meeting_id=str(meeting_id),
+        )
+    except Exception as exc:
+        logger.warning("Could not start audio track egress for %s: %s", participant.display_name, exc)
 
     # Create IndividualRecording DB record for post-processing transcription
     individual_rec = IndividualRecording(
@@ -326,9 +352,9 @@ async def approve_participant(
         meeting_id=meeting_id,
         participant_id=participant.id,
         speaker_name=participant.display_name,
-        egress_id=egress_id,
+        egress_id=composite_egress_id or audio_egress_id,
         file_path=recording_manager.get_individual_track_path(str(meeting_id), participant.display_name),
-        status="recording" if egress_id else "pending",
+        status="recording" if (composite_egress_id or audio_egress_id) else "pending",
     )
     db.add(individual_rec)
     await db.flush()
@@ -337,7 +363,7 @@ async def approve_participant(
     return JoinResponse(
         token=token,
         room_id=meeting.livekit_room_name,
-        livekit_url=settings.LIVEKIT_EXTERNAL_URL,
+        livekit_url=_get_livekit_external_url(request),
         participant_id=participant.id,
     )
 
@@ -385,7 +411,9 @@ async def start_meeting(
     meeting.started_at = datetime.utcnow()
     await db.flush()
 
-    # Start composite room egress (auto-record)
+    # Start composite room egress (auto-record) — this often fails with
+    # "Start signal not received" on self-hosted setups, so we also start
+    # a track-composite egress below as a reliable fallback.
     egress_id = None
     try:
         egress_id = await livekit_service.start_room_composite_egress(
@@ -408,7 +436,8 @@ async def start_meeting(
         db.add(recording)
         await db.flush()
 
-    # Start individual track egress for the host (for speaker-attributed transcription)
+    # Start track-composite egress for the host (audio+video combined into one MP4).
+    # This is the reliable recording method that produces playable video with audio.
     host_result = await db.execute(
         select(Participant).where(
             Participant.meeting_id == meeting_id,
@@ -417,15 +446,27 @@ async def start_meeting(
     )
     host = host_result.scalar_one_or_none()
     if host:
-        host_egress_id = None
+        # Track composite egress — audio+video in one file for review playback
+        host_composite_egress_id = None
         try:
-            host_egress_id = await livekit_service.start_track_egress(
+            host_composite_egress_id = await livekit_service.start_track_composite_egress(
                 room_name=meeting.livekit_room_name,
                 participant_identity=host.display_name,
                 meeting_id=str(meeting_id),
             )
         except Exception as exc:
-            logger.warning("Could not start track egress for host %s: %s", host.display_name, exc)
+            logger.warning("Could not start track composite egress for host %s: %s", host.display_name, exc)
+
+        # Also start individual audio-only track egress for transcription
+        host_audio_egress_id = None
+        try:
+            host_audio_egress_id = await livekit_service.start_track_egress(
+                room_name=meeting.livekit_room_name,
+                participant_identity=host.display_name,
+                meeting_id=str(meeting_id),
+            )
+        except Exception as exc:
+            logger.warning("Could not start audio track egress for host %s: %s", host.display_name, exc)
 
         # Create IndividualRecording for the host
         host_rec = IndividualRecording(
@@ -433,9 +474,9 @@ async def start_meeting(
             meeting_id=meeting_id,
             participant_id=host.id,
             speaker_name=host.display_name,
-            egress_id=host_egress_id,
+            egress_id=host_composite_egress_id or host_audio_egress_id,
             file_path=recording_manager.get_individual_track_path(str(meeting_id), host.display_name),
-            status="recording" if host_egress_id else "pending",
+            status="recording" if (host_composite_egress_id or host_audio_egress_id) else "pending",
         )
         db.add(host_rec)
         await db.flush()

@@ -16,19 +16,11 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
-<<<<<<< HEAD
     # LiveKit Cloud
     LIVEKIT_URL: str = ""  # wss://<project>.livekit.cloud — set in .env
     LIVEKIT_EXTERNAL_URL: str = ""  # same URL, returned to browsers — set in .env
     LIVEKIT_API_KEY: str = ""  # from LiveKit Cloud dashboard
     LIVEKIT_API_SECRET: str = ""  # from LiveKit Cloud dashboard
-=======
-    # LiveKit
-    LIVEKIT_URL: str = "ws://localhost:7880"
-    LIVEKIT_EXTERNAL_URL: str = "ws://localhost:7880"  # URL returned to browsers
-    LIVEKIT_API_KEY: str = "devkey"
-    LIVEKIT_API_SECRET: str = "devsecret1234567890abcdef12345678"
->>>>>>> 8a0df8f68ed615c0b531385e5fca31e1962f5832
 
     # WhisperX
     WHISPERX_URL: str = "http://localhost:9000"

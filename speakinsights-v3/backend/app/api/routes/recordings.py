@@ -100,8 +100,31 @@ async def stream_composite(
 
     file_path = recording_manager.get_recording_path(str(meeting_id), "composite")
 
+    # If the exact composite file doesn't exist, try to find any video/audio
+    # file in the recordings directory (egress often saves as .webm with
+    # participant-based naming instead of composite_{id}.mp4)
+    if not os.path.isfile(file_path):
+        recording_dir = Path(recording_manager._storage_path) / "recordings" / str(meeting_id)
+        if recording_dir.exists():
+            video_extensions = {".mp4", ".webm", ".mkv", ".ogg"}
+            for entry in sorted(recording_dir.iterdir(), key=lambda e: e.stat().st_size, reverse=True):
+                if entry.is_file() and entry.suffix.lower() in video_extensions:
+                    file_path = str(entry)
+                    logger.info("Composite not found, using fallback file: %s", file_path)
+                    break
+
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=404, detail="Composite recording not found on disk")
+
+    # Detect media type from file extension
+    ext = Path(file_path).suffix.lower()
+    media_type_map = {
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mkv": "video/x-matroska",
+        ".ogg": "audio/ogg",
+    }
+    media_type = media_type_map.get(ext, "video/mp4")
 
     file_size = os.path.getsize(file_path)
     range_header = request.headers.get("range")
@@ -133,14 +156,14 @@ async def stream_composite(
                 "Content-Range": f"bytes {start}-{end}/{file_size}",
                 "Accept-Ranges": "bytes",
                 "Content-Length": str(length),
-                "Content-Type": "video/mp4",
+                "Content-Type": media_type,
             },
         )
 
     # No range — serve full file
     return FileResponse(
         file_path,
-        media_type="video/mp4",
+        media_type=media_type,
         headers={"Accept-Ranges": "bytes"},
     )
 
@@ -221,13 +244,31 @@ async def download_composite(
 
     file_path = recording_manager.get_recording_path(str(meeting_id), "composite")
 
+    # Fallback: find any video file if composite MP4 doesn't exist
+    if not os.path.isfile(file_path):
+        recording_dir = Path(recording_manager._storage_path) / "recordings" / str(meeting_id)
+        if recording_dir.exists():
+            video_extensions = {".mp4", ".webm", ".mkv", ".ogg"}
+            for entry in sorted(recording_dir.iterdir(), key=lambda e: e.stat().st_size, reverse=True):
+                if entry.is_file() and entry.suffix.lower() in video_extensions:
+                    file_path = str(entry)
+                    break
+
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=404, detail="Composite recording not found")
 
-    filename = f"{meeting.title.replace(' ', '_')}_recording.mp4"
+    ext = Path(file_path).suffix.lower()
+    media_type_map = {
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mkv": "video/x-matroska",
+        ".ogg": "audio/ogg",
+    }
+    media_type = media_type_map.get(ext, "video/mp4")
+    filename = f"{meeting.title.replace(' ', '_')}_recording{ext}"
     return FileResponse(
         file_path,
-        media_type="video/mp4",
+        media_type=media_type,
         filename=filename,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

@@ -51,9 +51,9 @@ class IndividualRecording(Base):
     duration = Column(Float, nullable=True)
     format = Column(String(20), default="ogg")
     status = Column(
-        SAEnum("recording", "processing", "completed", "failed",
+        SAEnum("pending", "recording", "processing", "completed", "failed",
                name="individual_recording_status"),
-        default="recording",
+        default="pending",
         nullable=False,
     )
     transcription_status = Column(String(20), default="pending")  # pending, processing, completed

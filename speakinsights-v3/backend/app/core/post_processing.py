@@ -257,7 +257,11 @@ class PostProcessingPipeline:
     # ------------------------------------------------------------------
 
     async def _step_transcribe_and_sentiment(self, meeting_id: str) -> list[dict[str, Any]]:
-        """Transcribe each individual audio track via WhisperX, run VADER on segments."""
+        """Transcribe each individual audio track via WhisperX, run VADER on segments.
+
+        Falls back to existing live transcription segments from the DB
+        if no audio recording files are available (e.g. when egress failed).
+        """
         all_segments: list[dict[str, Any]] = []
 
         async with async_session_factory() as db:
@@ -269,78 +273,142 @@ class PostProcessingPipeline:
             )
             individual_recordings = result.scalars().all()
 
-            if not individual_recordings:
-                logger.warning("No individual recordings found for meeting %s", meeting_id)
-                return all_segments
+            has_audio_files = False
+            if individual_recordings:
+                for rec in individual_recordings:
+                    speaker_name = rec.speaker_name
+                    file_path = rec.file_path
 
-            for rec in individual_recordings:
-                speaker_name = rec.speaker_name
-                file_path = rec.file_path
+                    if not file_path:
+                        logger.warning("No file path for recording %s (speaker: %s)", rec.id, speaker_name)
+                        continue
 
-                if not file_path:
-                    logger.warning("No file path for recording %s (speaker: %s)", rec.id, speaker_name)
-                    continue
+                    # Check if the audio file actually exists
+                    import os
+                    if not os.path.exists(file_path):
+                        logger.warning(
+                            "Audio file not found for %s: %s — will try live transcription fallback",
+                            speaker_name, file_path,
+                        )
+                        continue
 
-                logger.info("Transcribing track for %s: %s", speaker_name, file_path)
+                    has_audio_files = True
+                    logger.info("Transcribing track for %s: %s", speaker_name, file_path)
 
-                try:
-                    # Update transcription status
-                    rec.transcription_status = "processing"
-                    await db.commit()
+                    try:
+                        # Update transcription status
+                        rec.transcription_status = "processing"
+                        await db.commit()
 
-                    # Send to WhisperX
-                    segments = await whisperx_client.transcribe_file(
-                        file_path, language=settings.DEFAULT_LANGUAGE
-                    )
+                        # Send to WhisperX
+                        segments = await whisperx_client.transcribe_file(
+                            file_path, language=settings.DEFAULT_LANGUAGE
+                        )
 
-                    # Process each segment: VADER sentiment + save to DB
-                    for seg in segments:
-                        text = seg.get("text", "").strip()
+                        # Process each segment: VADER sentiment + save to DB
+                        for seg in segments:
+                            text = seg.get("text", "").strip()
+                            if not text:
+                                continue
+
+                            # VADER sentiment
+                            sentiment = sentiment_service.analyze_segment(text)
+
+                            # Create DB record
+                            db_segment = TranscriptionSegment(
+                                id=uuid.uuid4(),
+                                meeting_id=uuid.UUID(meeting_id),
+                                speaker_name=speaker_name,
+                                text=text,
+                                language=seg.get("language"),
+                                start_time=seg.get("start", 0.0),
+                                end_time=seg.get("end", 0.0),
+                                confidence=seg.get("confidence"),
+                                sentiment_score=sentiment["compound"],
+                                sentiment_label=sentiment["label"],
+                                word_count=len(text.split()),
+                                source="post_processing",
+                                metadata_={"words": seg.get("words", [])},
+                            )
+                            db.add(db_segment)
+
+                            all_segments.append({
+                                "speaker": speaker_name,
+                                "text": text,
+                                "start": seg.get("start", 0.0),
+                                "end": seg.get("end", 0.0),
+                                "sentiment": sentiment,
+                            })
+
+                        rec.transcription_status = "completed"
+                        await db.commit()
+                        logger.info("Transcribed %d segments for %s", len(segments), speaker_name)
+
+                    except Exception as exc:
+                        logger.error(
+                            "Failed to transcribe track for %s: %s",
+                            speaker_name,
+                            exc,
+                            exc_info=True,
+                        )
+                        rec.transcription_status = "failed"
+                        await db.commit()
+
+            # ---------------------------------------------------------------
+            # FALLBACK: If no audio files were available (egress failed),
+            # use live transcription segments already saved in the DB by the
+            # frontend's real-time /chunk endpoint.
+            # ---------------------------------------------------------------
+            if not has_audio_files or not all_segments:
+                logger.info(
+                    "No egress audio files available for meeting %s — "
+                    "falling back to existing live transcription segments from DB",
+                    meeting_id,
+                )
+                result = await db.execute(
+                    select(TranscriptionSegment)
+                    .where(TranscriptionSegment.meeting_id == uuid.UUID(meeting_id))
+                    .order_by(TranscriptionSegment.start_time)
+                )
+                live_segments = result.scalars().all()
+
+                if live_segments:
+                    for seg in live_segments:
+                        text = (seg.text or "").strip()
                         if not text:
                             continue
 
-                        # VADER sentiment
-                        sentiment = sentiment_service.analyze_segment(text)
-
-                        # Create DB record
-                        db_segment = TranscriptionSegment(
-                            id=uuid.uuid4(),
-                            meeting_id=uuid.UUID(meeting_id),
-                            speaker_name=speaker_name,
-                            text=text,
-                            language=seg.get("language"),
-                            start_time=seg.get("start", 0.0),
-                            end_time=seg.get("end", 0.0),
-                            confidence=seg.get("confidence"),
-                            sentiment_score=sentiment["compound"],
-                            sentiment_label=sentiment["label"],
-                            word_count=len(text.split()),
-                            source="post_processing",
-                            metadata_={"words": seg.get("words", [])},
-                        )
-                        db.add(db_segment)
+                        # Re-run VADER sentiment if not already present
+                        sentiment_score = seg.sentiment_score
+                        sentiment_label = seg.sentiment_label
+                        if sentiment_score is None:
+                            sentiment = sentiment_service.analyze_segment(text)
+                            sentiment_score = sentiment["compound"]
+                            sentiment_label = sentiment["label"]
+                            seg.sentiment_score = sentiment_score
+                            seg.sentiment_label = sentiment_label
 
                         all_segments.append({
-                            "speaker": speaker_name,
+                            "speaker": seg.speaker_name or "Unknown",
                             "text": text,
-                            "start": seg.get("start", 0.0),
-                            "end": seg.get("end", 0.0),
-                            "sentiment": sentiment,
+                            "start": seg.start_time or 0.0,
+                            "end": seg.end_time or 0.0,
+                            "sentiment": {
+                                "compound": sentiment_score or 0.0,
+                                "label": sentiment_label or "neutral",
+                            },
                         })
 
-                    rec.transcription_status = "completed"
                     await db.commit()
-                    logger.info("Transcribed %d segments for %s", len(segments), speaker_name)
-
-                except Exception as exc:
-                    logger.error(
-                        "Failed to transcribe track for %s: %s",
-                        speaker_name,
-                        exc,
-                        exc_info=True,
+                    logger.info(
+                        "Loaded %d live transcription segments for meeting %s",
+                        len(all_segments), meeting_id,
                     )
-                    rec.transcription_status = "failed"
-                    await db.commit()
+                else:
+                    logger.warning(
+                        "No live transcription segments found either for meeting %s",
+                        meeting_id,
+                    )
 
         return all_segments
 

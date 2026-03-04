@@ -25,6 +25,7 @@ const MeetingReview = lazy(() => import('@/pages/MeetingReview'));
 const AIChat = lazy(() => import('@/pages/AIChat'));
 const ModelManager = lazy(() => import('@/pages/ModelManager'));
 const Settings = lazy(() => import('@/pages/Settings'));
+const Transcription = lazy(() => import('@/pages/Transcription'));
 
 export default function App() {
   const location = useLocation();
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/meeting/:id" element={<MeetingRoom />} />
           <Route path="/history" element={<History />} />
           <Route path="/meeting/:id/review" element={<MeetingReview />} />
+          <Route path="/meeting/:id/transcript" element={<Transcription />} />
           <Route path="/chat" element={<AIChat />} />
           <Route path="/models" element={<ModelManager />} />
           <Route path="/settings" element={<Settings />} />

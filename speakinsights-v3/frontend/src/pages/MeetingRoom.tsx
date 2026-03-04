@@ -58,15 +58,17 @@ export default function MeetingRoom() {
   const navigate = useNavigate();
   const state = (location.state as LocationState) || {};
 
-  // LiveKit Cloud: connect directly to LiveKit Cloud's global edge network.
-  // The URL comes from the backend (via lobby approval or join response).
-  // LiveKit Cloud handles all WebRTC transport (UDP/TURN/STUN) automatically,
-  // so we don't need the nginx proxy workaround anymore.
-  const computedLivekitUrl = state.livekitUrl || import.meta.env.VITE_LIVEKIT_URL || '';
+  // Dynamically construct the LiveKit URL from the current browser domain.
+  // This ensures it works across any tunnel domain (mac.madhur.dev,
+  // meetings.madhur.dev, localhost) without config changes.
+  // Nginx proxies /livekit-ws/ -> livekit-server:7880 inside Docker.
+  const computedLivekitUrl = (() => {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}/livekit-ws/`;
+  })();
 
   // Core meeting state
   const [token, setToken] = useState(state.token || '');
-  const [livekitUrl, setLivekitUrl] = useState(computedLivekitUrl);
   const [isHost, setIsHost] = useState(state.isHost || false);
   const [participantName, setParticipantName] = useState(state.participantName || 'Guest');
   const [meetingTitle, setMeetingTitle] = useState(state.meetingTitle || 'Meeting');
@@ -278,7 +280,7 @@ export default function MeetingRoom() {
   return (
     <LiveKitRoom
       token={token}
-      serverUrl={livekitUrl}
+      serverUrl={computedLivekitUrl}
       audio={true}
       video={true}
       connectOptions={{ autoSubscribe: true }}
@@ -385,8 +387,8 @@ export default function MeetingRoom() {
                       key={tab}
                       onClick={() => useUIStore.getState().setSidebarTab(tab)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${sidebarTab === tab
-                          ? 'bg-cyan/15 text-cyan'
-                          : 'text-white/40 hover:text-white/60 hover:bg-white/5'
+                        ? 'bg-cyan/15 text-cyan'
+                        : 'text-white/40 hover:text-white/60 hover:bg-white/5'
                         }`}
                     >
                       {tab}

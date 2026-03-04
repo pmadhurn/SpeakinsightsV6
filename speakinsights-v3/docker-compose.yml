@@ -49,13 +49,15 @@ services:
         condition: service_healthy
       whisperx:
         condition: service_healthy
+      livekit-server:
+        condition: service_started
     environment:
       # Database
       - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-speakinsights}@postgres:5432/speakinsights
       # Redis
       - REDIS_URL=redis://redis:6379/0
-      # LiveKit Cloud — no self-hosted server needed
-      - LIVEKIT_URL=${LIVEKIT_URL:-wss://insighthub-hqk8ioh9.livekit.cloud}
+      # LiveKit — self-hosted server (required for local egress recordings)
+      - LIVEKIT_URL=ws://livekit-server:7880
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
       - LIVEKIT_EXTERNAL_URL=${LIVEKIT_EXTERNAL_URL:-wss://insighthub-hqk8ioh9.livekit.cloud}
@@ -144,19 +146,46 @@ services:
           cpus: "0.5"
 
   # ---------------------------------------------------------------------------
-  # LiveKit Egress — Used to write LiveKit Cloud recordings to local disk
+  # LiveKit Server — Self-hosted for local egress recording support
+  # ---------------------------------------------------------------------------
+  livekit-server:
+    image: livekit/livekit-server:latest
+    container_name: speakinsights-livekit
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "7880:7880" # WebSocket + HTTP API
+      - "7881:7881" # RTC/TCP
+      - "50000-50060:50000-50060/udp" # WebRTC UDP
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    command: --config /etc/livekit.yaml --node-ip=0.0.0.0
+    networks:
+      - speakinsights-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+
+  # ---------------------------------------------------------------------------
+  # LiveKit Egress — Records rooms/tracks to local disk
   # ---------------------------------------------------------------------------
   livekit-egress:
     image: livekit/egress:latest
     container_name: speakinsights-egress
+    cap_add:
+      - SYS_ADMIN # Required since egress v1.7.6 for Chrome sandboxing
     depends_on:
       redis:
         condition: service_healthy
+      livekit-server:
+        condition: service_started
     environment:
-      # Use LiveKit Cloud endpoint and credentials directly
       - EGRESS_CONFIG_FILE=/etc/egress.yaml
-      - REDIS_URL=redis://redis:6379/0
-      - LIVEKIT_URL=${LIVEKIT_URL:-wss://insighthub-hqk8ioh9.livekit.cloud}
+      - LIVEKIT_WS_URL=ws://livekit-server:7880
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
     volumes:
@@ -168,8 +197,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2G
-          cpus: "2.0"
+          memory: 4G
+          cpus: "4.0"
 
   # ---------------------------------------------------------------------------
   # WhisperX — Speech-to-text transcription service

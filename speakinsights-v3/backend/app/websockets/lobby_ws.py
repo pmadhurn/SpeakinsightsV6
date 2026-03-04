@@ -144,7 +144,7 @@ class LobbyManager:
     # Host message handling
     # ------------------------------------------------------------------
 
-    async def handle_host_message(self, data: dict, meeting_id: str) -> None:
+    async def handle_host_message(self, data: dict, meeting_id: str, ws: WebSocket | None = None) -> None:
         """Process approve / decline messages from the host."""
         msg_type = data.get("type")
         participant_id = data.get("participant_id")
@@ -154,15 +154,23 @@ class LobbyManager:
             return
 
         if msg_type == "approve":
-            await self._approve_participant(meeting_id, participant_id)
+            await self._approve_participant(meeting_id, participant_id, ws=ws)
         elif msg_type == "decline":
             await self._decline_participant(meeting_id, participant_id)
         else:
             logger.warning("Unknown host lobby message type: %s", msg_type)
 
-    async def _approve_participant(self, meeting_id: str, participant_id: str) -> None:
+    async def _approve_participant(self, meeting_id: str, participant_id: str, ws: WebSocket | None = None) -> None:
         """Approve a participant: generate LiveKit token, update DB, notify."""
         logger.info("Approving participant %s for meeting %s", participant_id, meeting_id)
+
+        # Build LiveKit external URL dynamically from WebSocket request headers
+        livekit_external_url = settings.LIVEKIT_EXTERNAL_URL  # fallback
+        if ws:
+            proto = ws.headers.get("x-forwarded-proto", "http")
+            ws_proto = "wss" if proto == "https" else "ws"
+            host = ws.headers.get("host", "localhost")
+            livekit_external_url = f"{ws_proto}://{host}/livekit-ws/"
 
         try:
             # Fetch meeting and participant from DB
@@ -215,7 +223,7 @@ class LobbyManager:
                 "type": "approved",
                 "token": token,
                 "room_id": room_name,
-                "livekit_url": settings.LIVEKIT_EXTERNAL_URL,
+                "livekit_url": livekit_external_url,
             })
 
             logger.info("Participant %s approved for meeting %s", participant_id, meeting_id)
@@ -334,7 +342,7 @@ async def lobby_websocket(websocket: WebSocket, meeting_id: str):
                 continue
 
             if role == "host":
-                await lobby_manager.handle_host_message(data, meeting_id)
+                await lobby_manager.handle_host_message(data, meeting_id, ws=websocket)
             # Participants don't send actionable messages in lobby
     except WebSocketDisconnect:
         await lobby_manager.disconnect(websocket, meeting_id)

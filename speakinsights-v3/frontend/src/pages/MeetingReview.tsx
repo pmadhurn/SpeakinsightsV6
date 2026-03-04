@@ -355,8 +355,8 @@ export default function MeetingReview() {
                           key={tab.key}
                           onClick={() => setActiveTab(tab.key)}
                           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium transition-all ${activeTab === tab.key
-                              ? 'bg-cyan/15 text-cyan border border-cyan/30'
-                              : 'bg-white/5 text-white/50 border border-transparent hover:bg-white/10 hover:text-white/70'
+                            ? 'bg-cyan/15 text-cyan border border-cyan/30'
+                            : 'bg-white/5 text-white/50 border border-transparent hover:bg-white/10 hover:text-white/70'
                             }`}
                         >
                           <Icon size={14} />
@@ -400,12 +400,25 @@ export default function MeetingReview() {
 
             {/* RIGHT SIDE (35%) — Transcript */}
             <div className="flex-[35] min-w-0 sticky top-24" style={{ maxHeight: 'calc(100vh - 120px)' }}>
-              <TranscriptViewer
-                segments={segments}
-                currentVideoTime={videoTime}
-                onSegmentClick={handleSegmentClick}
-                meetingId={id || ''}
-              />
+              <div className="flex flex-col h-full">
+                {segments.length > 0 && (
+                  <div className="flex justify-end mb-2">
+                    <button
+                      onClick={() => navigate(`/meeting/${id}/transcript`)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-cyan/70 hover:text-cyan bg-cyan/5 hover:bg-cyan/10 border border-cyan/10 hover:border-cyan/20 transition-all"
+                    >
+                      <FileText size={12} />
+                      Full Transcript
+                    </button>
+                  </div>
+                )}
+                <TranscriptViewer
+                  segments={segments}
+                  currentVideoTime={videoTime}
+                  onSegmentClick={handleSegmentClick}
+                  meetingId={id || ''}
+                />
+              </div>
             </div>
           </div>
         </motion.div>
