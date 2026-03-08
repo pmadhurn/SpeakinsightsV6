@@ -4,6 +4,7 @@ Async client for Ollama LLM: generation, chat, summarisation,
 task extraction, sentiment analysis, embeddings, and model management.
 """
 
+import asyncio
 import json
 import logging
 from typing import Any, AsyncGenerator, Optional
@@ -54,33 +55,49 @@ class OllamaClient:
             Dict with keys: response (str), model (str), tokens (int).
         """
         model = model or self._default_model
-        try:
-            payload: dict[str, Any] = {
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": temperature,
-                    "num_predict": max_tokens,
-                },
-            }
-            if format:
-                payload["format"] = format
+        max_retries = 3
+        last_exc: Optional[Exception] = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                payload: dict[str, Any] = {
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": temperature,
+                        "num_predict": max_tokens,
+                    },
+                }
+                if format:
+                    payload["format"] = format
 
-            async with httpx.AsyncClient(timeout=300.0) as client:
-                resp = await client.post(f"{self._base_url}/api/generate", json=payload)
-                resp.raise_for_status()
+                async with httpx.AsyncClient(timeout=300.0) as client:
+                    resp = await client.post(f"{self._base_url}/api/generate", json=payload)
+                    resp.raise_for_status()
 
-            data = resp.json()
-            logger.debug("Ollama generate completed (model=%s)", model)
-            return {
-                "response": data.get("response", ""),
-                "model": data.get("model", model),
-                "tokens": data.get("eval_count", 0),
-            }
-        except Exception as exc:
-            logger.error("Ollama generate failed: %s", exc, exc_info=True)
-            raise
+                data = resp.json()
+                logger.debug("Ollama generate completed (model=%s)", model)
+                return {
+                    "response": data.get("response", ""),
+                    "model": data.get("model", model),
+                    "tokens": data.get("eval_count", 0),
+                }
+            except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+                last_exc = exc
+                if attempt < max_retries:
+                    wait = attempt * 5
+                    logger.warning(
+                        "Ollama generate connection failed (attempt %d/%d), retrying in %ds: %s",
+                        attempt, max_retries, wait, exc,
+                    )
+                    await asyncio.sleep(wait)
+                else:
+                    logger.error("Ollama generate failed after %d attempts: %s", max_retries, exc, exc_info=True)
+                    raise
+            except Exception as exc:
+                logger.error("Ollama generate failed: %s", exc, exc_info=True)
+                raise
+        raise last_exc  # unreachable, satisfies type checker
 
     # ------------------------------------------------------------------
     # Chat completions
@@ -187,7 +204,8 @@ class OllamaClient:
             meeting_title: Title of the meeting for context.
 
         Returns:
-            Dict with executive_summary, key_points, decisions_made, follow_ups.
+            Dict with executive_summary, key_points, decisions_made, follow_ups,
+            keywords, topics, themes.
         """
         prompt = f"""You are an expert meeting analyst. Analyse the following meeting transcript and produce a JSON summary.
 
@@ -201,6 +219,9 @@ Return a JSON object with exactly these keys:
 - "key_points": An array of the most important discussion points (strings).
 - "decisions_made": An array of decisions that were agreed upon (strings).
 - "follow_ups": An array of follow-up items mentioned (strings).
+- "keywords": An array of 5-10 important keywords from the meeting (single words or short phrases).
+- "topics": An array of 3-6 main topics/subjects discussed in the meeting (short phrases).
+- "themes": An array of 2-4 overarching themes or recurring patterns in the discussion (short descriptive phrases).
 
 Return ONLY valid JSON, no extra text."""
 
@@ -214,6 +235,9 @@ Return ONLY valid JSON, no extra text."""
                 "key_points": [],
                 "decisions_made": [],
                 "follow_ups": [],
+                "keywords": [],
+                "topics": [],
+                "themes": [],
             }
         parsed["_model"] = result.get("model", self._default_model)
         parsed["_tokens"] = result.get("tokens", 0)

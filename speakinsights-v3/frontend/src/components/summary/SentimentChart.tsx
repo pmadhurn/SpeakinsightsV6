@@ -32,20 +32,26 @@ export function SentimentChart({ sentiment }: SentimentChartProps) {
     );
   }
 
-  const { overall_score, overall_label, per_speaker, arc } = sentiment;
+  const {
+    overall_score,
+    overall_label,
+    speakers = [],
+    sentiment_arc = [],
+  } = sentiment;
 
   // Format arc data for Recharts
-  const arcData = arc.map((point) => ({
+  const arcData = (sentiment_arc || []).map((point) => ({
     ...point,
     minute: Math.round(point.time / 60),
     displayTime: `${Math.floor(point.time / 60)}:${String(Math.floor(point.time % 60)).padStart(2, '0')}`,
   }));
 
-  // Speaker bar data
-  const speakerData = per_speaker.map((s) => ({
+  // Speaker bar data — use average_score from the backend
+  const speakerData = (speakers || []).map((s) => ({
     ...s,
     name: s.speaker_name,
-    fillColor: getSentimentColor(s.score),
+    score: s.average_score,
+    fillColor: getSentimentColor(s.average_score),
     avatarColor: getAvatarColor(s.speaker_name),
   }));
 
@@ -202,7 +208,7 @@ export function SentimentChart({ sentiment }: SentimentChartProps) {
 
           {/* Speaker summaries */}
           <div className="mt-4 space-y-2">
-            {per_speaker.map((s, i) => (
+            {speakers.map((s, i) => (
               <div
                 key={i}
                 className="flex items-start gap-2 px-3 py-2 rounded-lg bg-white/[0.02] text-xs"
@@ -219,11 +225,11 @@ export function SentimentChart({ sentiment }: SentimentChartProps) {
                 <div>
                   <span className="font-medium text-white/70">{s.speaker_name}</span>
                   <span className="text-white/30 ml-1.5">
-                    ({s.label || (s.score >= 0.3 ? 'Positive' : s.score <= -0.3 ? 'Negative' : 'Neutral')})
+                    ({s.label || (s.average_score >= 0.3 ? 'Positive' : s.average_score <= -0.3 ? 'Negative' : 'Neutral')})
                   </span>
-                  {s.summary && (
-                    <p className="text-white/40 mt-0.5">{s.summary}</p>
-                  )}
+                  <span className="text-white/20 ml-1.5">
+                    · {s.segment_count} segments
+                  </span>
                 </div>
               </div>
             ))}

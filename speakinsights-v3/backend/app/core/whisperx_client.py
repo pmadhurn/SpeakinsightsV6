@@ -27,12 +27,15 @@ class WhisperXClient:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _parse_segments(raw_segments: list[dict], timestamp_offset: float = 0.0) -> list[dict[str, Any]]:
+    def _parse_segments(raw_segments: list[dict]) -> list[dict[str, Any]]:
         """Parse WhisperX response into a standardised segment format.
 
+        The WhisperX service already applies any timestamp_offset in its
+        ``format_result`` method, so we must NOT add an offset here — doing
+        so would double the timestamps.
+
         Args:
-            raw_segments: Raw segments from WhisperX.
-            timestamp_offset: Offset (seconds) to add to all timestamps.
+            raw_segments: Raw segments from WhisperX (already offset-adjusted).
 
         Returns:
             List of normalised segment dicts.
@@ -43,15 +46,15 @@ class WhisperXClient:
             for w in seg.get("words", []):
                 words.append({
                     "word": w.get("word", ""),
-                    "start": round((w.get("start", 0.0) or 0.0) + timestamp_offset, 3),
-                    "end": round((w.get("end", 0.0) or 0.0) + timestamp_offset, 3),
+                    "start": round((w.get("start", 0.0) or 0.0), 3),
+                    "end": round((w.get("end", 0.0) or 0.0), 3),
                     "confidence": round(w.get("score", w.get("confidence", 0.0)) or 0.0, 4),
                 })
 
             parsed.append({
                 "index": idx,
-                "start": round((seg.get("start", 0.0) or 0.0) + timestamp_offset, 3),
-                "end": round((seg.get("end", 0.0) or 0.0) + timestamp_offset, 3),
+                "start": round((seg.get("start", 0.0) or 0.0), 3),
+                "end": round((seg.get("end", 0.0) or 0.0), 3),
                 "text": seg.get("text", "").strip(),
                 "confidence": round(seg.get("score", seg.get("confidence", 0.0)) or 0.0, 4),
                 "words": words,
@@ -101,7 +104,9 @@ class WhisperXClient:
 
                     result = response.json()
                     segments = result.get("segments", result if isinstance(result, list) else [])
-                    parsed = self._parse_segments(segments, timestamp_offset)
+                    # WhisperX service already applies the offset in its
+                    # format_result(), so we do NOT pass it again here.
+                    parsed = self._parse_segments(segments)
                     logger.debug(
                         "Transcribed audio chunk: %d segments (offset=%.1fs)",
                         len(parsed),

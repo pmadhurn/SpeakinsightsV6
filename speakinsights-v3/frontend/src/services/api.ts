@@ -69,12 +69,77 @@ export const transcriptions = {
 };
 
 // ─── Summaries ───
+
+// The backend returns an array of SummaryResponse objects (executive, key_points,
+// decisions, sentiment), each with summary_type + content + structured_data.
+// The frontend Summary type expects a single flat object.
+interface BackendSummaryResponse {
+  id: string;
+  meeting_id: string;
+  summary_type: string;
+  content: string | null;
+  structured_data: Record<string, unknown> | null;
+  model_used: string | null;
+  created_at: string;
+}
+
+function transformSummaryResponse(items: BackendSummaryResponse[]): Summary | null {
+  if (!items || items.length === 0) return null;
+
+  const exec = items.find((s) => s.summary_type === 'executive');
+  const kp = items.find((s) => s.summary_type === 'key_points');
+  const dec = items.find((s) => s.summary_type === 'decisions');
+
+  // Extract from structured_data first, fall back to content
+  const execSummary =
+    (exec?.structured_data?.executive_summary as string) ||
+    exec?.content ||
+    '';
+
+  const keyPoints: string[] =
+    (exec?.structured_data?.key_points as string[]) ||
+    (kp?.structured_data?.key_points as string[]) ||
+    (kp?.content ? kp.content.split('\n').filter(Boolean) : []);
+
+  const decisions: string[] =
+    (exec?.structured_data?.decisions_made as string[]) ||
+    (dec?.structured_data?.decisions_made as string[]) ||
+    (dec?.content ? dec.content.split('\n').filter(Boolean) : []);
+
+  const keywords: string[] =
+    (exec?.structured_data?.keywords as string[]) || [];
+
+  const topics: string[] =
+    (exec?.structured_data?.topics as string[]) || [];
+
+  const themes: string[] =
+    (exec?.structured_data?.themes as string[]) || [];
+
+  const base = exec || items[0];
+  return {
+    id: base.id,
+    meeting_id: base.meeting_id,
+    executive_summary: execSummary,
+    key_points: keyPoints,
+    decisions: decisions,
+    keywords: keywords,
+    topics: topics,
+    themes: themes,
+    model_used: base.model_used || '',
+    created_at: base.created_at,
+  };
+}
+
 export const summaries = {
   generate: (meetingId: string, model?: string) =>
-    api.post<Summary>(`/summaries/${meetingId}/generate`, { model }).then((r) => r.data),
+    api
+      .post<BackendSummaryResponse[]>(`/summaries/${meetingId}/generate`, { model }, { timeout: 120000 })
+      .then((r) => transformSummaryResponse(r.data)),
 
   get: (meetingId: string) =>
-    api.get<Summary>(`/summaries/${meetingId}`).then((r) => r.data),
+    api
+      .get<BackendSummaryResponse[]>(`/summaries/${meetingId}`)
+      .then((r) => transformSummaryResponse(r.data)),
 
   getTasks: (meetingId: string) =>
     api.get<Task[]>(`/summaries/${meetingId}/tasks`).then((r) => r.data),

@@ -7,6 +7,9 @@ export interface Summary {
   executive_summary: string;
   key_points: string[];
   decisions: string[];
+  keywords: string[];
+  topics: string[];
+  themes: string[];
   model_used: string;
   created_at: string;
 }
@@ -24,21 +27,22 @@ export interface Task {
 }
 
 export interface SentimentData {
+  meeting_id: string;
   overall_score: number;
   overall_label: string;
-  per_speaker: SpeakerSentiment[];
-  arc: SentimentArcPoint[];
+  speakers: SpeakerSentiment[];
+  sentiment_arc: SentimentArcPoint[];
 }
 
 export interface SpeakerSentiment {
   speaker_name: string;
-  score: number;
+  average_score: number;
   label: string;
-  summary: string;
+  segment_count: number;
+  sentiment_arc: SentimentArcPoint[];
 }
 
 export interface SentimentArcPoint {
   time: number;
   score: number;
-  label: string;
 }

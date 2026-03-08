@@ -284,29 +284,57 @@ class LiveKitService:
         try:
             api = self._get_api()
 
-            # Find the participant's audio and video track SIDs
-            req = ListParticipantsRequest(room=room_name)
-            participants_resp = await api.room.list_participants(req)
+            # Find the participant's audio and video track SIDs.
+            # Retry up to 5 times (3 s apart) because the participant
+            # may not have published all tracks yet when we are called
+            # immediately after they join the room.
             audio_track_sid: Optional[str] = None
             video_track_sid: Optional[str] = None
+            max_attempts = 5
+            for attempt in range(1, max_attempts + 1):
+                req = ListParticipantsRequest(room=room_name)
+                participants_resp = await api.room.list_participants(req)
 
-            for p in participants_resp.participants:
-                if p.identity == participant_identity:
-                    for track in p.tracks:
-                        if track.type == 0:  # AUDIO
-                            audio_track_sid = track.sid
-                        elif track.type == 1:  # VIDEO
-                            video_track_sid = track.sid
-                    break
+                for p in participants_resp.participants:
+                    if p.identity == participant_identity:
+                        for track in p.tracks:
+                            if track.type == 0:  # AUDIO
+                                audio_track_sid = track.sid
+                            elif track.type == 1:  # VIDEO
+                                video_track_sid = track.sid
+                        break
+
+                if audio_track_sid and video_track_sid:
+                    break  # Both tracks found
+
+                if attempt < max_attempts:
+                    logger.info(
+                        "Waiting for tracks for %s (attempt %d/%d, audio=%s, video=%s)",
+                        participant_identity, attempt, max_attempts,
+                        audio_track_sid, video_track_sid,
+                    )
+                    await asyncio.sleep(3)
 
             if not audio_track_sid and not video_track_sid:
                 logger.warning(
-                    "No tracks found for participant %s in %s — skipping track composite egress",
+                    "No tracks found for participant %s in %s after %d attempts — skipping track composite egress",
                     participant_identity,
                     room_name,
+                    max_attempts,
                 )
                 await api.aclose()
                 return None
+
+            if not audio_track_sid:
+                logger.warning(
+                    "No AUDIO track found for %s — track composite will be video-only",
+                    participant_identity,
+                )
+            if not video_track_sid:
+                logger.warning(
+                    "No VIDEO track found for %s — track composite will be audio-only",
+                    participant_identity,
+                )
 
             file_name = f"{participant_identity}_{meeting_id or 'unknown'}.mp4"
             output_path = f"{self._storage_path}/recordings/{meeting_id or 'misc'}/{file_name}"

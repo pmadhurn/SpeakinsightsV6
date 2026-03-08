@@ -50,6 +50,7 @@ export default function AIChat() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [meetingsList, setMeetingsList] = useState<Meeting[]>([]);
   const [selectedMeetingIds, setSelectedMeetingIds] = useState<string[]>([]);
+  const [meetingDropdownOpen, setMeetingDropdownOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -86,12 +87,12 @@ export default function AIChat() {
         } else if (modelList.length > 0) {
           setSelectedModel(modelList[0].name);
         }
-      } catch {}
+      } catch { }
 
       try {
         const meetingsData = await meetingsApi.list();
         setMeetingsList(meetingsData);
-      } catch {}
+      } catch { }
     };
     init();
   }, [defaultModel]);
@@ -125,13 +126,13 @@ export default function AIChat() {
         created_at: m.created_at,
         sources: m.context_chunks
           ? m.context_chunks.map((c: any) => ({
-              segment_id: c.meeting_id || '',
-              speaker_name: c.speaker || '',
-              text: c.text || '',
-              start_time: c.start_time || 0,
-              meeting_title: c.meeting_title || '',
-              score: c.distance ? 1 / (1 + c.distance) : 0,
-            }))
+            segment_id: c.meeting_id || '',
+            speaker_name: c.speaker || '',
+            text: c.text || '',
+            start_time: c.start_time || 0,
+            meeting_title: c.meeting_title || '',
+            score: c.distance ? 1 / (1 + c.distance) : 0,
+          }))
           : undefined,
       }));
       setMessages(loaded);
@@ -156,7 +157,7 @@ export default function AIChat() {
       if (activeSessionId === sessionId) {
         handleNewChat();
       }
-    } catch {}
+    } catch { }
   };
 
   // ── Send message ──
@@ -203,7 +204,7 @@ export default function AIChat() {
         const sessionsData: any = await chat.getSessions();
         const sList = sessionsData.sessions || (Array.isArray(sessionsData) ? sessionsData : []);
         setSessions(sList);
-      } catch {}
+      } catch { }
     }
   };
 
@@ -254,19 +255,17 @@ export default function AIChat() {
                     <div
                       key={session.session_id}
                       onClick={() => loadSession(session.session_id)}
-                      className={`group flex items-start gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
-                        activeSessionId === session.session_id
-                          ? 'bg-cyan/10 border-l-2 border-cyan'
-                          : 'hover:bg-white/5 border-l-2 border-transparent'
-                      }`}
+                      className={`group flex items-start gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${activeSessionId === session.session_id
+                        ? 'bg-cyan/10 border-l-2 border-cyan'
+                        : 'hover:bg-white/5 border-l-2 border-transparent'
+                        }`}
                     >
                       <MessageSquare
                         size={13}
-                        className={`mt-0.5 shrink-0 ${
-                          activeSessionId === session.session_id
-                            ? 'text-cyan'
-                            : 'text-white/25'
-                        }`}
+                        className={`mt-0.5 shrink-0 ${activeSessionId === session.session_id
+                          ? 'text-cyan'
+                          : 'text-white/25'
+                          }`}
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-white/80 truncate leading-snug">
@@ -333,11 +332,10 @@ export default function AIChat() {
             {/* RAG toggle */}
             <button
               onClick={() => setUseRag(!useRag)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                useRag
-                  ? 'bg-cyan/15 text-cyan border border-cyan/25'
-                  : 'bg-white/5 text-white/40 border border-white/10 hover:text-white/60'
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${useRag
+                ? 'bg-cyan/15 text-cyan border border-cyan/25'
+                : 'bg-white/5 text-white/40 border border-white/10 hover:text-white/60'
+                }`}
             >
               <Search size={12} />
               Search Meetings
@@ -345,29 +343,41 @@ export default function AIChat() {
 
             {/* Meeting selector (when RAG is on) */}
             {useRag && meetingsList.length > 0 && (
-              <div className="relative group">
-                <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-white/50 border border-white/10 hover:border-white/20 transition-colors">
+              <div className="relative">
+                <button
+                  onClick={() => setMeetingDropdownOpen(!meetingDropdownOpen)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-white/50 border border-white/10 hover:border-white/20 transition-colors"
+                >
                   <Sparkles size={12} />
                   {selectedMeetingIds.length > 0
                     ? `${selectedMeetingIds.length} meeting${selectedMeetingIds.length > 1 ? 's' : ''}`
                     : 'All meetings'}
                 </button>
-                <div className="absolute top-full left-0 mt-1 w-64 glass-heavy rounded-xl p-2 hidden group-hover:block z-50 max-h-48 overflow-y-auto">
-                  {meetingsList.map((m) => (
-                    <label
-                      key={m.id}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedMeetingIds.includes(m.id)}
-                        onChange={() => toggleMeetingSelection(m.id)}
-                        className="accent-cyan-500"
-                      />
-                      <span className="text-xs text-white/70 truncate">{m.title}</span>
-                    </label>
-                  ))}
-                </div>
+                {meetingDropdownOpen && (
+                  <>
+                    {/* Invisible backdrop to close on outside click */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setMeetingDropdownOpen(false)}
+                    />
+                    <div className="absolute top-full left-0 mt-1 w-64 glass-heavy rounded-xl p-2 z-50 max-h-48 overflow-y-auto">
+                      {meetingsList.map((m) => (
+                        <label
+                          key={m.id}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedMeetingIds.includes(m.id)}
+                            onChange={() => toggleMeetingSelection(m.id)}
+                            className="accent-cyan-500"
+                          />
+                          <span className="text-xs text-white/70 truncate">{m.title}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

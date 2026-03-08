@@ -163,7 +163,14 @@ export default function MeetingReview() {
     try {
       glassToast.info('Regenerating summary...');
       const newSummary = await summaries.generate(id);
-      setSummary(newSummary);
+      if (newSummary) setSummary(newSummary);
+      // Also refresh tasks and sentiment since generate creates those too
+      const [newTasks, newSentiment] = await Promise.allSettled([
+        summaries.getTasks(id),
+        summaries.getSentiment(id),
+      ]);
+      if (newTasks.status === 'fulfilled') setTasks(newTasks.value);
+      if (newSentiment.status === 'fulfilled') setSentiment(newSentiment.value);
       glassToast.success('Summary regenerated!');
     } catch {
       glassToast.error('Failed to regenerate summary');
@@ -295,7 +302,7 @@ export default function MeetingReview() {
                 recordingUrl={recordingUrl}
                 currentTime={videoTime}
                 onTimeUpdate={setVideoTime}
-                sentimentArc={sentiment?.arc}
+                sentimentArc={sentiment?.sentiment_arc}
               />
 
               {/* Processing status */}

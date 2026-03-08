@@ -4,7 +4,7 @@ import {
   Brain,
   CheckCircle,
   ListOrdered,
-  ArrowRight,
+  Tag,
   RefreshCw,
   Sparkles,
 } from 'lucide-react';
@@ -127,6 +127,95 @@ export function SummaryCard({ summary, onRegenerate }: SummaryCardProps) {
               </motion.li>
             ))}
           </ul>
+        </motion.div>
+      )}
+
+      {/* Topics */}
+      {summary.topics && summary.topics.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="rounded-2xl p-5 bg-white/[0.04] backdrop-blur-xl border border-white/10"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <ListOrdered size={16} className="text-amber-400" />
+            <h4 className="text-sm font-semibold text-white/90">Topics Discussed</h4>
+            <span className="text-[10px] text-white/30 ml-auto">{summary.topics.length}</span>
+          </div>
+          <ul className="space-y-2">
+            {summary.topics.map((topic, i) => (
+              <motion.li
+                key={i}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.25 + i * 0.05 }}
+                className="flex items-start gap-2.5 text-xs text-white/70"
+              >
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-400/10 text-amber-400 text-[10px] font-bold flex items-center justify-center mt-0.5">
+                  {i + 1}
+                </span>
+                <span className="leading-relaxed">{topic}</span>
+              </motion.li>
+            ))}
+          </ul>
+        </motion.div>
+      )}
+
+      {/* Themes */}
+      {summary.themes && summary.themes.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="rounded-2xl p-5 bg-white/[0.04] backdrop-blur-xl border border-white/10"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles size={16} className="text-lavender" />
+            <h4 className="text-sm font-semibold text-white/90">Themes</h4>
+          </div>
+          <div className="space-y-2">
+            {summary.themes.map((theme, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 + i * 0.05 }}
+                className="flex items-start gap-2 px-3 py-2 rounded-lg bg-lavender/5 border border-lavender/10 text-xs text-white/70"
+              >
+                <Sparkles size={12} className="text-lavender flex-shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{theme}</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Keywords */}
+      {summary.keywords && summary.keywords.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="rounded-2xl p-5 bg-white/[0.04] backdrop-blur-xl border border-white/10"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Tag size={16} className="text-cyan" />
+            <h4 className="text-sm font-semibold text-white/90">Keywords</h4>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {summary.keywords.map((keyword, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.35 + i * 0.03 }}
+                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-cyan/10 text-cyan border border-cyan/15 hover:bg-cyan/15 transition-colors"
+              >
+                {keyword}
+              </motion.span>
+            ))}
+          </div>
         </motion.div>
       )}
 

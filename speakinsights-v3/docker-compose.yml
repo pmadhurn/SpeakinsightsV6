@@ -74,6 +74,8 @@ services:
       - HF_TOKEN=${HF_TOKEN:-}
     volumes:
       - ./storage:/app/storage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - speakinsights-net
     restart: unless-stopped
@@ -215,7 +217,7 @@ services:
       - MODEL_SIZE=${WHISPERX_MODEL:-small}
       - DEVICE=cpu
       - COMPUTE_TYPE=int8
-      - BATCH_SIZE=4
+      - BATCH_SIZE=8
       - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-auto}
       - HF_TOKEN=${HF_TOKEN:-}
     volumes:
@@ -233,8 +235,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 3G
-          cpus: "2.0"
+          memory: 4G
 
 # =============================================================================
 # Networks
