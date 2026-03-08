@@ -20,6 +20,8 @@ from app.models.meeting import Meeting
 from app.models.summary import Summary
 from app.models.task import Task
 from app.models.transcription import TranscriptionSegment
+from app.models.embedding import TranscriptEmbedding
+from app.core.post_processing import PostProcessingPipeline
 from app.schemas.summary import (
     SentimentResponse,
     SpeakerSentiment,
@@ -77,6 +79,14 @@ async def generate_summary(
         lines.append(f"[{minutes:02d}:{seconds:02d}] {seg.speaker_name}: {seg.text}")
     transcript_text = "\n".join(lines)
 
+    # --- Clean up old summaries and tasks before regenerating ---
+    await db.execute(
+        Summary.__table__.delete().where(Summary.meeting_id == meeting_id)
+    )
+    await db.execute(
+        Task.__table__.delete().where(Task.meeting_id == meeting_id)
+    )
+
     # --- Step 1: Summarise ---
     try:
         summary_data = await ollama_client.summarize_transcript(transcript_text, meeting.title)
@@ -128,6 +138,7 @@ async def generate_summary(
     # --- Step 2: Extract tasks ---
     try:
         tasks_data = await ollama_client.extract_tasks(transcript_text)
+        logger.info("Raw tasks data: %s", tasks_data)
         for task_item in tasks_data:
             due_date = None
             if task_item.get("due_date"):
@@ -141,11 +152,20 @@ async def generate_summary(
             if priority not in ("low", "medium", "high", "critical"):
                 priority = "medium"
 
+            # Try multiple possible keys for the task title
+            title = (
+                task_item.get("title")
+                or task_item.get("action_item")
+                or task_item.get("task")
+                or task_item.get("description")
+                or "Untitled Task"
+            )
+
             db.add(Task(
                 id=uuid.uuid4(),
                 meeting_id=meeting_id,
-                title=task_item.get("title", "Untitled Task"),
-                description=task_item.get("context", ""),
+                title=title,
+                description=task_item.get("context", task_item.get("description", "")),
                 assignee=task_item.get("assignee"),
                 due_date=due_date,
                 priority=priority,
@@ -172,6 +192,49 @@ async def generate_summary(
         created_summaries.append(sentiment_summary)
     except Exception as exc:
         logger.warning("Sentiment analysis failed: %s", exc)
+
+    # --- Step 4: Generate transcript embeddings for RAG ---
+    try:
+        # Clean old embeddings
+        await db.execute(
+            TranscriptEmbedding.__table__.delete().where(
+                TranscriptEmbedding.meeting_id == meeting_id
+            )
+        )
+
+        # Build segment dicts for chunking
+        seg_dicts = [
+            {
+                "speaker": seg.speaker_name,
+                "text": seg.text,
+                "start": seg.start_time,
+                "end": seg.end_time,
+            }
+            for seg in segments
+        ]
+
+        pipeline = PostProcessingPipeline()
+        chunks = pipeline.chunk_transcript(seg_dicts)
+
+        if chunks:
+            chunk_texts = [c["text"] for c in chunks]
+            embeddings = await ollama_client.generate_embeddings_batch(chunk_texts)
+
+            for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+                db.add(TranscriptEmbedding(
+                    id=uuid.uuid4(),
+                    meeting_id=meeting_id,
+                    chunk_text=chunk["text"],
+                    chunk_index=idx,
+                    speaker_name=chunk.get("speaker"),
+                    start_time=chunk.get("start"),
+                    end_time=chunk.get("end"),
+                    embedding=embedding,
+                    model_used=getattr(settings, 'EMBEDDING_MODEL', 'nomic-embed-text'),
+                ))
+            logger.info("Generated %d embeddings for meeting %s", len(embeddings), meeting_id)
+    except Exception as exc:
+        logger.warning("Embedding generation failed (RAG will be unavailable): %s", exc)
 
     await db.flush()
 

@@ -3,7 +3,10 @@ SpeakInsights v3 — Transcription Routes
 Audio chunk upload, full transcript retrieval, timeline view, search, speaker stats.
 """
 
+import glob
+import json
 import logging
+import os
 import uuid
 from datetime import datetime
 
@@ -12,6 +15,7 @@ from sqlalchemy import func, select, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.config import settings
 from app.core.sentiment_service import sentiment_service
 from app.core.whisperx_client import whisperx_client
 from app.models.meeting import Meeting
@@ -27,6 +31,51 @@ from app.schemas.transcription import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _get_recording_offset(meeting_id: uuid.UUID, meeting: Meeting) -> float:
+    """Calculate the offset between meeting start and recording start.
+    
+    The egress (recording) typically starts 15-25 seconds after the meeting
+    starts because it waits for audio/video tracks to be published.
+    Transcript timestamps are relative to meeting start, but video timestamps
+    are relative to recording start. This function returns the number of
+    seconds to subtract from transcript timestamps to align them with video.
+    
+    Returns:
+        Offset in seconds (0.0 if no recording metadata found).
+    """
+    if not meeting.started_at:
+        return 0.0
+
+    # Look for egress metadata JSON files
+    rec_dir = os.path.join(settings.STORAGE_PATH, "recordings", str(meeting_id))
+    if not os.path.isdir(rec_dir):
+        return 0.0
+
+    earliest_egress_start = None
+
+    for json_file in glob.glob(os.path.join(rec_dir, "EG_*.json")):
+        try:
+            with open(json_file) as f:
+                meta = json.load(f)
+            started_at_ns = meta.get("started_at", 0)
+            if started_at_ns:
+                egress_start = datetime.utcfromtimestamp(started_at_ns / 1e9)
+                if earliest_egress_start is None or egress_start < earliest_egress_start:
+                    earliest_egress_start = egress_start
+        except Exception:
+            continue
+
+    if earliest_egress_start is None:
+        return 0.0
+
+    offset = (earliest_egress_start - meeting.started_at).total_seconds()
+    logger.debug(
+        "Recording offset for meeting %s: %.1fs (egress started at %s, meeting at %s)",
+        meeting_id, offset, earliest_egress_start, meeting.started_at,
+    )
+    return max(0.0, offset)  # Never negative
 
 
 # ---------------------------------------------------------------------------
@@ -128,10 +177,15 @@ async def get_full_transcript(
     meeting_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get the full transcript for a meeting, ordered by start_time."""
+    """Get the full transcript for a meeting, ordered by start_time.
+    
+    Timestamps are adjusted to align with the recording/video start time,
+    not the meeting start time, so transcript segments sync with playback.
+    """
     # Verify meeting
     meeting_result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
-    if not meeting_result.scalar_one_or_none():
+    meeting = meeting_result.scalar_one_or_none()
+    if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
     result = await db.execute(
@@ -141,6 +195,12 @@ async def get_full_transcript(
     )
     segments = result.scalars().all()
 
+    # --- Calculate recording offset ---
+    # Transcript timestamps are relative to meeting start, but the video
+    # starts when egress begins (typically 15-25 seconds later).
+    # We need to subtract this offset so timestamps match the video.
+    recording_offset = _get_recording_offset(meeting_id, meeting)
+
     # Detect languages used
     lang_result = await db.execute(
         select(distinct(TranscriptionSegment.language))
@@ -149,14 +209,22 @@ async def get_full_transcript(
     )
     languages = [row[0] for row in lang_result.all() if row[0]]
 
+    # Build adjusted segments
+    adjusted_segments = []
+    for s in segments:
+        seg_resp = TranscriptSegmentResponse.model_validate(s)
+        seg_resp.start_time = max(0.0, s.start_time - recording_offset)
+        seg_resp.end_time = max(0.0, s.end_time - recording_offset)
+        adjusted_segments.append(seg_resp)
+
     total_duration = 0.0
-    if segments:
-        total_duration = max(s.end_time for s in segments) - min(s.start_time for s in segments)
+    if adjusted_segments:
+        total_duration = max(s.end_time for s in adjusted_segments) - min(s.start_time for s in adjusted_segments)
 
     return FullTranscriptResponse(
         meeting_id=meeting_id,
-        segments=[TranscriptSegmentResponse.model_validate(s) for s in segments],
-        total_segments=len(segments),
+        segments=adjusted_segments,
+        total_segments=len(adjusted_segments),
         total_duration=total_duration,
         languages=languages,
     )

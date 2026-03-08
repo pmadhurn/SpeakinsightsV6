@@ -274,8 +274,12 @@ Return ONLY a valid JSON array, no extra text."""
         result = await self.generate(prompt, temperature=0.2, format="json")
         try:
             parsed = json.loads(result["response"])
-            if isinstance(parsed, dict) and "tasks" in parsed:
-                parsed = parsed["tasks"]
+            # Handle various dict wrapper keys the LLM might use
+            if isinstance(parsed, dict):
+                for key in ("tasks", "actionItems", "action_items", "items"):
+                    if key in parsed and isinstance(parsed[key], list):
+                        parsed = parsed[key]
+                        break
             if not isinstance(parsed, list):
                 parsed = [parsed]
         except json.JSONDecodeError:

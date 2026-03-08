@@ -116,7 +116,7 @@ async def serve_ics(
     meeting_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    """Serve a previously generated .ics calendar file for download."""
+    """Serve a .ics calendar file for download. Auto-generates if none exists."""
     # Find the latest export
     result = await db.execute(
         select(CalendarExport)
@@ -125,11 +125,72 @@ async def serve_ics(
         .limit(1)
     )
     export = result.scalar_one_or_none()
-    if not export:
-        raise HTTPException(status_code=404, detail="No calendar export found for this meeting")
 
-    if not export.file_path or not os.path.isfile(export.file_path):
-        raise HTTPException(status_code=404, detail="Calendar file not found on disk")
+    # If no export or file missing, auto-generate
+    if not export or not export.file_path or not os.path.isfile(export.file_path):
+        # Verify meeting
+        meet_result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
+        meeting = meet_result.scalar_one_or_none()
+        if not meeting:
+            raise HTTPException(status_code=404, detail="Meeting not found")
+
+        # Get tasks
+        task_result = await db.execute(
+            select(Task).where(Task.meeting_id == meeting_id)
+        )
+        tasks = task_result.scalars().all()
+
+        # Get attendees
+        part_result = await db.execute(
+            select(Participant).where(Participant.meeting_id == meeting_id)
+        )
+        attendees = [p.display_name for p in part_result.scalars().all()]
+
+        # Build tasks data
+        tasks_data = []
+        for t in tasks:
+            tasks_data.append({
+                "title": t.title,
+                "assignee": t.assignee or "Unassigned",
+                "due_date": t.due_date.isoformat() if t.due_date else None,
+                "priority": t.priority or "medium",
+                "context": t.description or "",
+            })
+
+        try:
+            duration_minutes = 60
+            if meeting.started_at and meeting.ended_at:
+                duration_minutes = int(
+                    (meeting.ended_at - meeting.started_at).total_seconds() / 60
+                )
+
+            file_path, ics_content = calendar_generator.generate_ics(
+                title=meeting.title,
+                description=meeting.description or "",
+                start_time=meeting.started_at or meeting.created_at,
+                duration_minutes=max(duration_minutes, 1),
+                attendees=attendees,
+                tasks=tasks_data,
+                meeting_id=str(meeting_id),
+            )
+        except Exception as exc:
+            logger.error("Failed to auto-generate .ics: %s", exc)
+            raise HTTPException(status_code=500, detail=f"Calendar generation failed: {exc}")
+
+        # Save export record
+        new_export = CalendarExport(
+            id=uuid.uuid4(),
+            meeting_id=meeting_id,
+            file_path=file_path,
+            file_url=f"/api/calendar/{meeting_id}/ics",
+            export_type="ics",
+            tasks_included=[str(t.id) for t in tasks],
+        )
+        db.add(new_export)
+        await db.flush()
+
+        logger.info("Auto-generated .ics export for meeting %s", meeting_id)
+        export = new_export
 
     return FileResponse(
         export.file_path,
