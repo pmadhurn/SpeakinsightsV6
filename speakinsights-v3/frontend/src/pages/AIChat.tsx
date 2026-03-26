@@ -46,9 +46,7 @@ export default function AIChat() {
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   
-  // Mobile check config
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const [sidebarOpen, setSidebarOpen] = useState(!isMobile); 
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [meetingsList, setMeetingsList] = useState<Meeting[]>([]);
   const [selectedMeetingIds, setSelectedMeetingIds] = useState<string[]>([]);
   const [meetingDropdownOpen, setMeetingDropdownOpen] = useState(false);

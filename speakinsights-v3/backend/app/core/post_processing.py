@@ -8,7 +8,7 @@ Designed to run as a background asyncio task.
 import asyncio
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import select, update
@@ -153,7 +153,7 @@ class PostProcessingPipeline:
                 await db.execute(
                     update(Meeting)
                     .where(Meeting.id == uuid.UUID(meeting_id))
-                    .values(status="completed", ended_at=datetime.utcnow())
+                    .values(status="completed")
                 )
                 await db.commit()
             logger.info("[Step 10] Meeting %s marked as completed", meeting_id)
@@ -222,7 +222,7 @@ class PostProcessingPipeline:
                                 recording.duration = await recording_manager.get_audio_duration(saved_files[0])
                             except Exception:
                                 pass
-                            recording.completed_at = datetime.utcnow()
+                            recording.completed_at = datetime.now(timezone.utc)
                             await db.commit()
                             logger.info(
                                 "Updated recording DB record for egress %s (size=%s)",
@@ -585,7 +585,7 @@ class PostProcessingPipeline:
                 content=summary_data.get("executive_summary", ""),
                 structured_data=summary_data,
                 model_used=summary_data.get("_model", settings.OLLAMA_MODEL),
-                generation_time=datetime.utcnow(),
+                generation_time=datetime.now(timezone.utc),
             ))
 
             # Key points
@@ -596,7 +596,7 @@ class PostProcessingPipeline:
                 content="\n".join(summary_data.get("key_points", [])),
                 structured_data={"key_points": summary_data.get("key_points", [])},
                 model_used=summary_data.get("_model", settings.OLLAMA_MODEL),
-                generation_time=datetime.utcnow(),
+                generation_time=datetime.now(timezone.utc),
             ))
 
             # Decisions
@@ -607,7 +607,7 @@ class PostProcessingPipeline:
                 content="\n".join(summary_data.get("decisions_made", [])),
                 structured_data={"decisions_made": summary_data.get("decisions_made", [])},
                 model_used=summary_data.get("_model", settings.OLLAMA_MODEL),
-                generation_time=datetime.utcnow(),
+                generation_time=datetime.now(timezone.utc),
             ))
 
             await db.commit()
@@ -681,7 +681,7 @@ class PostProcessingPipeline:
                 content=str(sentiment_data.get("overall_sentiment", "")),
                 structured_data=sentiment_data,
                 model_used=settings.OLLAMA_MODEL,
-                generation_time=datetime.utcnow(),
+                generation_time=datetime.now(timezone.utc),
             ))
             await db.commit()
 
@@ -724,7 +724,7 @@ class PostProcessingPipeline:
                 description=meeting.description or "",
                 start_time=meeting.started_at or meeting.created_at,
                 duration_minutes=int(
-                    ((meeting.ended_at or datetime.utcnow()) - (meeting.started_at or meeting.created_at)).total_seconds() / 60
+                    ((meeting.ended_at or datetime.now(timezone.utc)) - (meeting.started_at or meeting.created_at)).total_seconds() / 60
                 ),
                 attendees=attendees,
                 tasks=tasks_with_dates,

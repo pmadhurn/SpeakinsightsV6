@@ -7,7 +7,7 @@ import asyncio
 import logging
 import secrets
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select, delete
@@ -39,9 +39,14 @@ router = APIRouter()
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _generate_code() -> str:
-    """Generate a unique meeting code like 'si-a1b2c3d4'."""
-    return f"si-{secrets.token_hex(4)}"
+async def _generate_code(db: AsyncSession) -> str:
+    """Generate a unique meeting code like 'si-a1b2c3d4', retrying on collision."""
+    for _ in range(10):
+        code = f"si-{secrets.token_hex(4)}"
+        result = await db.execute(select(Meeting).where(Meeting.code == code))
+        if not result.scalar_one_or_none():
+            return code
+    raise RuntimeError("Failed to generate a unique meeting code after 10 attempts")
 
 
 def _get_livekit_external_url(request: Request) -> str:
@@ -107,7 +112,7 @@ async def create_meeting(
     Generates a shareable room code, creates the host participant,
     and provisions a LiveKit room.
     """
-    code = _generate_code()
+    code = await _generate_code(db)
     room_name = f"si-room-{code}"
 
     # Create meeting record
@@ -246,7 +251,7 @@ async def join_meeting(
         host = host_result.scalar_one_or_none()
         if host:
             host.is_active = True
-            host.joined_at = datetime.utcnow()
+            host.joined_at = datetime.now(timezone.utc)
             await db.flush()
 
             token = await livekit_service.generate_token(
@@ -314,7 +319,7 @@ async def approve_participant(
 
     # Approve
     participant.is_approved = True
-    participant.joined_at = datetime.utcnow()
+    participant.joined_at = datetime.now(timezone.utc)
     await db.flush()
 
     # Generate LiveKit token
@@ -408,7 +413,7 @@ async def start_meeting(
         raise HTTPException(status_code=400, detail="Meeting already active")
 
     meeting.status = "active"
-    meeting.started_at = datetime.utcnow()
+    meeting.started_at = datetime.now(timezone.utc)
     await db.flush()
 
     # Start composite room egress (auto-record) — this often fails with
@@ -431,7 +436,7 @@ async def start_meeting(
             egress_id=egress_id,
             file_path=recording_manager.get_recording_path(str(meeting_id), "composite"),
             status="recording",
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(timezone.utc),
         )
         db.add(recording)
         await db.flush()
@@ -501,7 +506,7 @@ async def end_meeting(
         raise HTTPException(status_code=400, detail="Meeting already ended")
 
     meeting.status = "processing"
-    meeting.ended_at = datetime.utcnow()
+    meeting.ended_at = datetime.now(timezone.utc)
 
     # Calculate duration
     if meeting.started_at:

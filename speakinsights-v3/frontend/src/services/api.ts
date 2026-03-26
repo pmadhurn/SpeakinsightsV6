@@ -63,9 +63,10 @@ export const transcriptions = {
     api.get<TranscriptTimeline>(`/transcriptions/${meetingId}/timeline`).then((r) => r.data),
 
   search: (meetingId: string, query: string) =>
-    api.get<TranscriptSearchResult[]>(`/transcriptions/${meetingId}/search`, {
-      params: { q: query },
-    }).then((r) => r.data),
+    api.get<{ results: TranscriptSearchResult[]; query: string; meeting_id: string; count: number }>(
+      `/transcriptions/${meetingId}/search`,
+      { params: { q: query } }
+    ).then((r) => r.data.results || []),
 };
 
 // ─── Summaries ───
@@ -179,16 +180,6 @@ export const calendar = {
 export const chat = {
   send: (data: ChatRequest) =>
     api.post<ChatMessage>('/chat', data).then((r) => r.data),
-
-  sendStream: (data: ChatRequest): EventSource => {
-    const params = new URLSearchParams();
-    params.set('message', data.message);
-    if (data.session_id) params.set('session_id', data.session_id);
-    if (data.meeting_id) params.set('meeting_id', data.meeting_id);
-    if (data.model) params.set('model', data.model);
-    if (data.use_rag !== undefined) params.set('use_rag', String(data.use_rag));
-    return new EventSource(`/api/chat/stream?${params.toString()}`);
-  },
 
   getHistory: (sessionId: string) =>
     api.get(`/chat/history/${sessionId}`).then((r) => r.data),

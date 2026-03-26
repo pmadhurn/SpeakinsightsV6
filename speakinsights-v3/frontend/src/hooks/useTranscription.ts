@@ -18,12 +18,6 @@ interface LiveCaption {
 
 const WS_BASE = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
 
-/**
- * Hook connecting to /ws/transcript/{meetingId}.
- * Manages two data streams:
- * 1. Live captions from browser Speech API (relayed via WebSocket)
- * 2. Accurate WhisperX segments (delayed ~20s)
- */
 export function useTranscription({
   meetingId,
   participantName,
@@ -39,7 +33,6 @@ export function useTranscription({
 
   const speakerSetRef = useRef<Set<string>>(new Set());
 
-  // Track unique speakers
   const trackSpeaker = useCallback((name: string) => {
     if (name && !speakerSetRef.current.has(name)) {
       speakerSetRef.current.add(name);
@@ -47,16 +40,34 @@ export function useTranscription({
     }
   }, []);
 
+  // ── Declare addSegmentInternal BEFORE useWebSocket to avoid forward-reference ──
+  const addSegmentInternal = useCallback(
+    (segment: TranscriptSegment) => {
+      setSegments((prev) => {
+        if (prev.some((s) => s.id === segment.id)) return prev;
+        return [...prev, segment].sort((a, b) => a.start_time - b.start_time);
+      });
+      store.addSegment(segment);
+      trackSpeaker(segment.speaker_name);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [trackSpeaker]
+  );
+
+  // Keep a stable ref so the WS onMessage closure always calls the latest version
+  const addSegmentInternalRef = useRef(addSegmentInternal);
+  useEffect(() => {
+    addSegmentInternalRef.current = addSegmentInternal;
+  }, [addSegmentInternal]);
+
   // ── Transcript WebSocket ──
   const wsUrl = meetingId && enabled ? `${WS_BASE}/ws/transcript/${meetingId}` : undefined;
 
   const { sendMessage, isConnected } = useWebSocket(wsUrl, {
     onMessage: (data: unknown) => {
       const msg = data as Record<string, unknown>;
-      console.log('[SpeakInsights] Transcript WS message:', msg.type);
 
       switch (msg.type) {
-        // Live caption relayed from another participant
         case 'caption': {
           const caption: LiveCaption = {
             speaker: msg.speaker as string,
@@ -69,50 +80,30 @@ export function useTranscription({
           trackSpeaker(msg.speaker as string);
           break;
         }
-
-        // Accurate WhisperX segment received from backend
         case 'segment': {
           const segment = msg.segment as TranscriptSegment;
-          if (segment) {
-            addSegmentInternal(segment);
-            console.log(
-              '[SpeakInsights] New transcript segment:',
-              segment.speaker_name,
-              segment.text.substring(0, 50)
-            );
-          }
+          if (segment) addSegmentInternalRef.current(segment);
           break;
         }
-
-        // Batch of segments (e.g. on reconnect or initial load)
         case 'segments': {
           const batchSegments = msg.segments as TranscriptSegment[];
           if (Array.isArray(batchSegments)) {
-            batchSegments.forEach((seg) => addSegmentInternal(seg));
+            batchSegments.forEach((seg) => addSegmentInternalRef.current(seg));
           }
           break;
         }
-
-        // Transcription started indicator
-        case 'transcription_started': {
+        case 'transcription_started':
           setIsTranscribing(true);
           break;
-        }
-
-        // Transcription stopped
-        case 'transcription_stopped': {
+        case 'transcription_stopped':
           setIsTranscribing(false);
           break;
-        }
-
-        case 'error': {
+        case 'error':
           setError(msg.message as string);
           break;
-        }
       }
     },
     onOpen: () => {
-      console.log('[SpeakInsights] Transcript WS connected');
       setIsTranscribing(true);
       setError(null);
     },
@@ -122,36 +113,15 @@ export function useTranscription({
     autoReconnect: true,
   });
 
-  // ── Internal: add segment to local state and store ──
-  const addSegmentInternal = useCallback(
-    (segment: TranscriptSegment) => {
-      setSegments((prev) => {
-        // Avoid duplicates by ID
-        if (prev.some((s) => s.id === segment.id)) return prev;
-        const updated = [...prev, segment].sort((a, b) => a.start_time - b.start_time);
-        return updated;
-      });
-      store.addSegment(segment);
-      trackSpeaker(segment.speaker_name);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [trackSpeaker]
-  );
-
-  // ── Public: send a live caption to all participants via WebSocket ──
+  // ── Public: send a live caption via WebSocket ──
   const addCaption = useCallback(
     (text: string, speaker: string) => {
-      sendMessage({
-        type: 'caption',
-        text,
-        speaker,
-        is_final: true,
-      });
+      sendMessage({ type: 'caption', text, speaker, is_final: true });
     },
     [sendMessage]
   );
 
-  // ── Public: manually add a segment (for local processing) ──
+  // ── Public: manually add a segment ──
   const addSegment = useCallback(
     (segment: TranscriptSegment) => {
       addSegmentInternal(segment);
@@ -162,8 +132,6 @@ export function useTranscription({
   // ── Load existing transcript on mount ──
   useEffect(() => {
     if (!meetingId || !enabled) return;
-
-    console.log('[SpeakInsights] Loading existing transcript for meeting:', meetingId);
     transcriptions
       .getTranscript(meetingId)
       .then((existingSegments) => {
@@ -171,12 +139,10 @@ export function useTranscription({
           setSegments(existingSegments.sort((a, b) => a.start_time - b.start_time));
           store.setSegments(existingSegments);
           existingSegments.forEach((seg) => trackSpeaker(seg.speaker_name));
-          console.log('[SpeakInsights] Loaded', existingSegments.length, 'existing segments');
         }
       })
-      .catch((err) => {
+      .catch(() => {
         // Not critical — transcript may not exist yet
-        console.log('[SpeakInsights] No existing transcript:', err.message);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetingId, enabled]);
@@ -190,16 +156,7 @@ export function useTranscription({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return {
-    liveCaption,
-    segments,
-    speakers,
-    isTranscribing,
-    isConnected,
-    error,
-    addCaption,
-    addSegment,
-  };
+  return { liveCaption, segments, speakers, isTranscribing, isConnected, error, addCaption, addSegment };
 }
 
 export default useTranscription;

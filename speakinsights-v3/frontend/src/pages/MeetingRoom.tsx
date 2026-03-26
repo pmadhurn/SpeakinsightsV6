@@ -156,7 +156,7 @@ export default function MeetingRoom() {
     [addSegment, setLiveCaption]
   );
 
-  const { connect: connectTranscriptWs } = useWebSocket(undefined, {
+  const { connect: connectTranscriptWs, disconnect: disconnectTranscriptWs } = useWebSocket(undefined, {
     onMessage: handleTranscriptMessage,
     autoReconnect: true,
   });
@@ -173,7 +173,7 @@ export default function MeetingRoom() {
     [meetingId, navigate]
   );
 
-  const { connect: connectMeetingWs } = useWebSocket(undefined, {
+  const { connect: connectMeetingWs, disconnect: disconnectMeetingWs } = useWebSocket(undefined, {
     onMessage: handleMeetingEvent,
     autoReconnect: true,
   });
@@ -186,7 +186,11 @@ export default function MeetingRoom() {
       connectTranscriptWs(`${protocol}//${host}/ws/transcript/${meetingId}`);
       connectMeetingWs(`${protocol}//${host}/ws/meeting/${meetingId}`);
     }
-  }, [isConnected, meetingId, connectTranscriptWs, connectMeetingWs]);
+    return () => {
+      disconnectTranscriptWs();
+      disconnectMeetingWs();
+    };
+  }, [isConnected, meetingId, connectTranscriptWs, connectMeetingWs, disconnectTranscriptWs, disconnectMeetingWs]);
 
   // ─── Live Captions ───
   const {
@@ -385,7 +389,7 @@ export default function MeetingRoom() {
                   {(['participants', 'chat', 'transcript'] as const).map((tab) => (
                     <button
                       key={tab}
-                      onClick={() => useUIStore.getState().setSidebarTab(tab)}
+                      onClick={() => setSidebarTab(tab)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${sidebarTab === tab
                         ? 'bg-cyan/15 text-cyan'
                         : 'text-white/40 hover:text-white/60 hover:bg-white/5'

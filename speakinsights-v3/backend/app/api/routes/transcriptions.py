@@ -8,7 +8,7 @@ import json
 import logging
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlalchemy import func, select, distinct
@@ -61,7 +61,7 @@ def _get_recording_offset(meeting_id: uuid.UUID, meeting: Meeting) -> float:
                 meta = json.load(f)
             started_at_ns = meta.get("started_at", 0)
             if started_at_ns:
-                egress_start = datetime.utcfromtimestamp(started_at_ns / 1e9)
+                egress_start = datetime.fromtimestamp(started_at_ns / 1e9, tz=timezone.utc)
                 if earliest_egress_start is None or egress_start < earliest_egress_start:
                     earliest_egress_start = egress_start
         except Exception:
@@ -70,7 +70,15 @@ def _get_recording_offset(meeting_id: uuid.UUID, meeting: Meeting) -> float:
     if earliest_egress_start is None:
         return 0.0
 
-    offset = (earliest_egress_start - meeting.started_at).total_seconds()
+    # Ensure meeting.started_at is timezone-aware for comparison
+    meeting_start = meeting.started_at
+    if meeting_start is not None and meeting_start.tzinfo is None:
+        meeting_start = meeting_start.replace(tzinfo=timezone.utc)
+
+    if meeting_start is None:
+        return 0.0
+
+    offset = (earliest_egress_start - meeting_start).total_seconds()
     logger.debug(
         "Recording offset for meeting %s: %.1fs (egress started at %s, meeting at %s)",
         meeting_id, offset, earliest_egress_start, meeting.started_at,
