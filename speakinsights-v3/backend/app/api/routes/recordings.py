@@ -131,10 +131,16 @@ async def stream_composite(
 
     if range_header:
         # Parse range header: "bytes=start-end"
-        range_str = range_header.replace("bytes=", "")
-        parts = range_str.split("-")
-        start = int(parts[0])
-        end = int(parts[1]) if parts[1] else file_size - 1
+        try:
+            range_str = range_header.replace("bytes=", "")
+            parts = range_str.split("-")
+            start = int(parts[0]) if parts[0] else 0
+            end = int(parts[1]) if len(parts) > 1 and parts[1] else file_size - 1
+            # Clamp to valid range
+            start = max(0, min(start, file_size - 1))
+            end = max(start, min(end, file_size - 1))
+        except (ValueError, IndexError):
+            raise HTTPException(status_code=416, detail="Invalid Range header")
         length = end - start + 1
 
         def iter_file():

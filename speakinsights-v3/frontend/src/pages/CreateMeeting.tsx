@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ArrowLeft, Video, Copy, Check, ChevronDown, ChevronUp,
-  ExternalLink, Sparkles, Globe, Lock, Mic, Users, Zap,
-} from 'lucide-react';
+import { ArrowLeft, Video, Copy, Check, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import GlassCard from '@/components/ui/GlassCard';
+import GlassButton from '@/components/ui/GlassButton';
+import GlassInput from '@/components/ui/GlassInput';
 import { glassToast } from '@/components/ui/Toast';
 import { meetings } from '@/services/api';
 import type { CreateMeetingResponse } from '@/types/meeting';
@@ -24,22 +24,14 @@ const LANGUAGES = [
   { value: 'ru', label: 'Russian' },
 ];
 
-const FEATURES = [
-  { icon: Mic, label: 'AI Transcription', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-  { icon: Users, label: 'Up to 20 Participants', color: 'text-purple-400', bg: 'bg-purple-500/10' },
-  { icon: Lock, label: 'Air-Gapped Privacy', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-  { icon: Zap, label: 'RAG Knowledge Base', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-];
-
 export default function CreateMeeting() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ title: '', description: '', host_name: '', language: 'en' });
-  const [isCreating, setIsCreating] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [createdMeeting, setCreatedMeeting] = useState<CreateMeetingResponse | null>(null);
-  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
-
-  const handleChange = (e: React.Change
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    host_name: '',
+    language: 'en',
+  });
   const [isCreating, setIsCreating] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [createdMeeting, setCreatedMeeting] = useState<CreateMeetingResponse | null>(null);
@@ -51,7 +43,6 @@ export default function CreateMeeting() {
 
   const handleCreate = async () => {
     if (!form.title.trim() || !form.host_name.trim()) return;
-
     setIsCreating(true);
     try {
       const result = await meetings.create({
@@ -61,7 +52,7 @@ export default function CreateMeeting() {
         host_name: form.host_name.trim(),
       });
       setCreatedMeeting(result);
-      glassToast.success('Meeting created successfully!');
+      glassToast.success('Meeting created!');
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
@@ -72,10 +63,8 @@ export default function CreateMeeting() {
     }
   };
 
-  const getShareableLink = () => {
-    if (!createdMeeting) return '';
-    return `${window.location.origin}/join/${createdMeeting.code}`;
-  };
+  const getShareableLink = () =>
+    createdMeeting ? `${window.location.origin}/join/${createdMeeting.code}` : '';
 
   const copyToClipboard = async (text: string, type: 'code' | 'link') => {
     try {
@@ -121,7 +110,6 @@ export default function CreateMeeting() {
 
           <AnimatePresence mode="wait">
             {!createdMeeting ? (
-              /* ─── Create Form ─── */
               <motion.div
                 key="form"
                 initial={{ opacity: 0, y: 20 }}
@@ -176,7 +164,6 @@ export default function CreateMeeting() {
                       </select>
                     </div>
 
-                    {/* Advanced Settings */}
                     <button
                       type="button"
                       onClick={() => setShowAdvanced(!showAdvanced)}
@@ -223,7 +210,6 @@ export default function CreateMeeting() {
                 </GlassCard>
               </motion.div>
             ) : (
-              /* ─── Success State ─── */
               <motion.div
                 key="success"
                 initial={{ opacity: 0, y: 20 }}
@@ -240,12 +226,9 @@ export default function CreateMeeting() {
                       <Check className="text-cyan" size={32} />
                     </motion.div>
                     <h2 className="text-2xl font-bold text-white/90 mb-1">Meeting Created!</h2>
-                    <p className="text-sm text-white/50">
-                      Share the code or link with participants
-                    </p>
+                    <p className="text-sm text-white/50">Share the code or link with participants</p>
                   </div>
 
-                  {/* Meeting Code */}
                   <div className="mb-6">
                     <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">
                       Meeting Code
@@ -267,16 +250,13 @@ export default function CreateMeeting() {
                     </div>
                   </div>
 
-                  {/* Shareable Link */}
                   <div className="mb-8">
                     <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">
                       Shareable Link
                     </label>
                     <div className="flex items-center gap-3">
                       <div className="flex-1 bg-white/5 border border-white/10 rounded-glass px-4 py-3 overflow-hidden">
-                        <span className="text-sm text-white/70 truncate block">
-                          {getShareableLink()}
-                        </span>
+                        <span className="text-sm text-white/70 truncate block">{getShareableLink()}</span>
                       </div>
                       <GlassButton
                         variant="ghost"

@@ -348,7 +348,7 @@ class LiveKitService:
                 room_name=room_name,
                 audio_track_id=audio_track_sid or "",
                 video_track_id=video_track_sid or "",
-                file=output,
+                file_outputs=[output],
             )
             egress_info = await api.egress.start_track_composite_egress(egress_req)
 
@@ -405,7 +405,7 @@ class LiveKitService:
             egress_req = RoomCompositeEgressRequest(
                 room_name=room_name,
                 layout="speaker",
-                file=output,
+                file_outputs=[output],
             )
             egress_info = await api.egress.start_room_composite_egress(egress_req)
 

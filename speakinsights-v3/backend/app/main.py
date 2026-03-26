@@ -77,7 +77,7 @@ async def _check_service_connectivity() -> None:
     try:
         r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
         await r.ping()
-        await r.close()
+        await r.aclose()
         results["Redis"] = "connected ✓"
     except Exception as exc:
         results["Redis"] = f"FAILED ({exc})"
