@@ -4,7 +4,6 @@ import {
   Settings as SettingsIcon,
   Globe,
   Cpu,
-  Video,
   Eye,
   HardDrive,
   Trash2,
@@ -61,7 +60,7 @@ export default function Settings() {
   const [clearChatModal, setClearChatModal] = useState(false);
   const [clearingChat, setClearingChat] = useState(false);
 
-  // Load models
+  // Load real models from Ollama via API
   useEffect(() => {
     modelsApi
       .list()
@@ -169,9 +168,7 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-white/60 mb-1.5">
-                    Max Participants
-                  </label>
+                  <label className="block text-sm text-white/60 mb-1.5">Max Participants</label>
                   <input
                     type="number"
                     min={2}
@@ -195,9 +192,7 @@ export default function Settings() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-white/60 mb-1.5">
-                    Default Summary Model
-                  </label>
+                  <label className="block text-sm text-white/60 mb-1.5">Default Summary Model</label>
                   <select
                     value={defaultModel}
                     onChange={(e) => setDefaultModel(e.target.value)}
@@ -209,17 +204,13 @@ export default function Settings() {
                       </option>
                     ))}
                     {nonEmbedModels.length === 0 && (
-                      <option value="" className="bg-navy-light">
-                        No models installed
-                      </option>
+                      <option value="" className="bg-navy-light">No models installed</option>
                     )}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm text-white/60 mb-1.5">
-                    Default Chat Model
-                  </label>
+                  <label className="block text-sm text-white/60 mb-1.5">Default Chat Model</label>
                   <select
                     value={chatModel}
                     onChange={(e) => setChatModel(e.target.value)}
@@ -231,9 +222,7 @@ export default function Settings() {
                       </option>
                     ))}
                     {nonEmbedModels.length === 0 && (
-                      <option value="" className="bg-navy-light">
-                        No models installed
-                      </option>
+                      <option value="" className="bg-navy-light">No models installed</option>
                     )}
                   </select>
                 </div>
@@ -242,7 +231,7 @@ export default function Settings() {
                   <label className="block text-sm text-white/60 mb-1.5">Embedding Model</label>
                   <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-glass px-4 py-3 text-white/50 text-sm">
                     <span>nomic-embed-text</span>
-                    <span className="text-xs text-white/25 ml-auto">(read-only)</span>
+                    <span className="text-xs text-white/30 ml-auto">System managed</span>
                   </div>
                 </div>
               </div>
@@ -259,9 +248,7 @@ export default function Settings() {
                 <div className="flex items-center justify-between py-2">
                   <div>
                     <label className="text-sm text-white/80">Reduce Motion</label>
-                    <p className="text-xs text-white/30 mt-0.5">
-                      Disable animations for accessibility
-                    </p>
+                    <p className="text-xs text-white/30 mt-0.5">Disable animations for accessibility</p>
                   </div>
                   <button
                     onClick={() => setReduceMotion(!reduceMotion)}
@@ -304,7 +291,6 @@ export default function Settings() {
                 <HardDrive size={16} className="text-amber-400" />
                 <h3 className="font-semibold text-white/90">Storage</h3>
               </div>
-
               <div className="space-y-3">
                 <GlassButton
                   variant="ghost"

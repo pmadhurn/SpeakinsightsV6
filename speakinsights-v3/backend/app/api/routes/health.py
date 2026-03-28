@@ -64,7 +64,7 @@ async def _check_livekit() -> str:
 async def _check_whisperx() -> str:
     """Check WhisperX service health."""
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.get(f"{settings.WHISPERX_URL}/health")
             if resp.status_code == 200:
                 return "connected"

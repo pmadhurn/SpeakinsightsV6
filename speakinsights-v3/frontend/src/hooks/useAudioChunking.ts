@@ -136,12 +136,10 @@ export function useAudioChunking({
     const currentChunkNumber = chunkNumberRef.current;
     const timestampOffset = currentChunkNumber * chunkDurationSeconds;
 
-    // Stop current recording to flush data
+    // Stop current recording — send blob inside onstop to avoid the 150ms race condition
     const recorder = mediaRecorderRef.current;
-    recorder.stop();
 
-    // Wait for ondataavailable to fire, then send
-    setTimeout(() => {
+    recorder.onstop = () => {
       if (chunksRef.current.length > 0) {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm;codecs=opus' });
         chunksRef.current = [];
@@ -172,7 +170,9 @@ export function useAudioChunking({
           setError('Failed to restart audio recorder');
         }
       }
-    }, 150);
+    };
+
+    recorder.stop();
   }, [chunkDurationSeconds, sendChunk]);
 
   // ── Start chunking ──
@@ -256,20 +256,20 @@ export function useAudioChunking({
       intervalRef.current = null;
     }
 
-    // Stop recorder and send final chunk
+    // Stop recorder and send final chunk via onstop (event-driven, no arbitrary timeout)
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       const finalChunkNumber = chunkNumberRef.current;
       const timestampOffset = finalChunkNumber * chunkDurationSeconds;
-      mediaRecorderRef.current.stop();
-
-      setTimeout(() => {
+      const recorder = mediaRecorderRef.current;
+      recorder.onstop = () => {
         if (chunksRef.current.length > 0) {
           const blob = new Blob(chunksRef.current, { type: 'audio/webm;codecs=opus' });
           chunksRef.current = [];
           console.log('[SpeakInsights] Sending final audio chunk');
           sendChunk(blob, timestampOffset);
         }
-      }, 150);
+      };
+      recorder.stop();
     }
 
     // Stop media stream tracks

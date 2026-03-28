@@ -87,7 +87,7 @@ class WhisperXClient:
             max_retries = 2
             for attempt in range(1, max_retries + 1):
                 try:
-                    async with httpx.AsyncClient(timeout=60.0) as client:
+                    async with httpx.AsyncClient(timeout=120.0) as client:
                         files = {"file": ("chunk.wav", audio_bytes, "audio/wav")}
                         data: dict[str, Any] = {}
                         if lang:

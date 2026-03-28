@@ -117,11 +117,11 @@ export default function MeetingReview() {
   const handleProcessingMessage = useCallback(
     (data: unknown) => {
       const msg = data as Record<string, unknown>;
-      if (msg.type === 'processing_update') {
-        const step = msg.step as string;
-        setProcessingSteps((prev) => [...prev, step]);
+      if (msg.type === 'processing_progress') {
+        const stepName = msg.current_step_name as string;
+        if (stepName) setProcessingSteps((prev) => [...prev, stepName]);
       }
-      if (msg.type === 'processing_complete') {
+      if (msg.type === 'processing_completed') {
         glassToast.success('Processing complete!');
         fetchData(); // Reload all data
       }
@@ -191,7 +191,8 @@ export default function MeetingReview() {
       a.href = url;
       a.download = `meeting-${id}.ics`;
       a.click();
-      URL.revokeObjectURL(url);
+      // Delay revoke so the browser has time to start the download
+      setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch {
       glassToast.error('Failed to export calendar');
     }

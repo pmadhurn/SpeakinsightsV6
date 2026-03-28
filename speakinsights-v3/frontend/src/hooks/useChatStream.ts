@@ -32,6 +32,10 @@ export function useChatStream() {
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
+      let fullText = '';
+      let allSources: ChatSource[] = [];
+      let sessionId = params.session_id;
+
       try {
         const body: Record<string, unknown> = {
           message: params.message,
@@ -60,9 +64,6 @@ export function useChatStream() {
         if (!reader) throw new Error('No response body');
 
         const decoder = new TextDecoder();
-        let fullText = '';
-        let allSources: ChatSource[] = [];
-        let sessionId = params.session_id;
         let buffer = '';
 
         while (true) {
@@ -108,17 +109,17 @@ export function useChatStream() {
           }
         }
 
-        setIsStreaming(false);
         return { content: fullText, sources: allSources, session_id: sessionId };
       } catch (err: any) {
         if (err.name === 'AbortError') {
-          setIsStreaming(false);
           return null;
         }
         const msg = err.message || 'Failed to stream response';
         setError(msg);
-        setIsStreaming(false);
         return null;
+      } finally {
+        // Always clear streaming state regardless of success or error
+        setIsStreaming(false);
       }
     },
     [],

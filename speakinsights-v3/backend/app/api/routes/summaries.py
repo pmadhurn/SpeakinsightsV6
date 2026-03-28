@@ -6,10 +6,10 @@ Summary generation, task management, and sentiment analysis.
 import json
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
@@ -80,12 +80,8 @@ async def generate_summary(
     transcript_text = "\n".join(lines)
 
     # --- Clean up old summaries and tasks before regenerating ---
-    await db.execute(
-        Summary.__table__.delete().where(Summary.meeting_id == meeting_id)
-    )
-    await db.execute(
-        Task.__table__.delete().where(Task.meeting_id == meeting_id)
-    )
+    await db.execute(delete(Summary).where(Summary.meeting_id == meeting_id))
+    await db.execute(delete(Task).where(Task.meeting_id == meeting_id))
 
     # --- Step 1: Summarise ---
     try:
@@ -104,7 +100,7 @@ async def generate_summary(
         content=summary_data.get("executive_summary", ""),
         structured_data=summary_data,
         model_used=summary_data.get("_model", settings.OLLAMA_MODEL),
-        generation_time=datetime.utcnow(),
+        generation_time=datetime.now(timezone.utc),
     )
     db.add(exec_summary)
     created_summaries.append(exec_summary)
@@ -117,7 +113,7 @@ async def generate_summary(
         content="\n".join(summary_data.get("key_points", [])),
         structured_data={"key_points": summary_data.get("key_points", [])},
         model_used=summary_data.get("_model", settings.OLLAMA_MODEL),
-        generation_time=datetime.utcnow(),
+        generation_time=datetime.now(timezone.utc),
     )
     db.add(kp_summary)
     created_summaries.append(kp_summary)
@@ -130,7 +126,7 @@ async def generate_summary(
         content="\n".join(summary_data.get("decisions_made", [])),
         structured_data={"decisions_made": summary_data.get("decisions_made", [])},
         model_used=summary_data.get("_model", settings.OLLAMA_MODEL),
-        generation_time=datetime.utcnow(),
+        generation_time=datetime.now(timezone.utc),
     )
     db.add(dec_summary)
     created_summaries.append(dec_summary)
@@ -186,7 +182,7 @@ async def generate_summary(
             content=str(sentiment_data.get("overall_sentiment", "")),
             structured_data=sentiment_data,
             model_used=settings.OLLAMA_MODEL,
-            generation_time=datetime.utcnow(),
+            generation_time=datetime.now(timezone.utc),
         )
         db.add(sentiment_summary)
         created_summaries.append(sentiment_summary)
@@ -197,9 +193,7 @@ async def generate_summary(
     try:
         # Clean old embeddings
         await db.execute(
-            TranscriptEmbedding.__table__.delete().where(
-                TranscriptEmbedding.meeting_id == meeting_id
-            )
+            delete(TranscriptEmbedding).where(TranscriptEmbedding.meeting_id == meeting_id)
         )
 
         # Build segment dicts for chunking
@@ -323,7 +317,7 @@ async def update_task(
     if assignee is not None:
         task.assignee = assignee
 
-    task.updated_at = datetime.utcnow()
+    task.updated_at = datetime.now(timezone.utc)
     await db.flush()
 
     logger.info("Updated task %s", task_id)

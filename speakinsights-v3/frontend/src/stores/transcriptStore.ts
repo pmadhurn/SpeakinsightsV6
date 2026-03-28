@@ -23,9 +23,12 @@ export const useTranscriptStore = create<TranscriptState>((set) => ({
   isLoading: false,
 
   addSegment: (segment) =>
-    set((state) => ({
-      segments: [...state.segments, segment].sort((a, b) => a.start_time - b.start_time),
-    })),
+    set((state) => {
+      if (state.segments.some((s) => s.id === segment.id)) return state;
+      return {
+        segments: [...state.segments, segment].sort((a, b) => a.start_time - b.start_time),
+      };
+    }),
 
   setSegments: (segments) => set({ segments }),
 

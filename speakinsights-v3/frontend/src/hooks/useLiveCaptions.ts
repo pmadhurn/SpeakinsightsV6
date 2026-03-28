@@ -196,6 +196,7 @@ export function useLiveCaptions({
       if (event.error === 'not-allowed') {
         setError('Microphone access denied. Please allow microphone access.');
         setIsListening(false);
+        enabledRef.current = false;
         console.error('[SpeakInsights] Microphone access denied for captions');
         return;
       }

@@ -153,7 +153,7 @@ export default function Transcription() {
         a.href = url;
         a.download = `transcript-${meetingId}.txt`;
         a.click();
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
         glassToast.success('Transcript downloaded!');
     }, [segments, meetingId]);
 

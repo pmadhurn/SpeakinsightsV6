@@ -25,6 +25,8 @@ export function useRecording({ meetingId, wsUrl }: UseRecordingOptions) {
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Meeting WebSocket for recording events ──
+  // Uses the provided wsUrl (shared from useMeeting) to avoid a duplicate connection.
+  // Falls back to creating its own connection only if no wsUrl is given.
   const effectiveUrl = wsUrl || (meetingId ? `${WS_BASE}/ws/meeting/${meetingId}` : undefined);
 
   const { isConnected } = useWebSocket(effectiveUrl, {

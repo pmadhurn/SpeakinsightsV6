@@ -205,10 +205,13 @@ class LobbyManager:
                     is_host=False,
                 )
 
+                if not token:
+                    raise ValueError("LiveKit token generation returned empty result")
+
                 # Update participant record
                 await session.execute(
                     text("UPDATE participants SET is_approved = TRUE, joined_at = :now WHERE id = :pid"),
-                    {"pid": _uuid.UUID(participant_id), "now": datetime.utcnow()},
+                    {"pid": _uuid.UUID(participant_id), "now": datetime.now(timezone.utc)},
                 )
                 await session.commit()
 

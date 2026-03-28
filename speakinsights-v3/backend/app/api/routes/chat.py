@@ -256,7 +256,7 @@ async def stream_chat_message(
         is_rag=bool(data.use_rag and data.meeting_ids),
     )
     db.add(user_msg)
-    await db.flush()
+    await db.commit()
 
     async def event_generator():
         """Generate SSE events with Ollama streaming tokens."""

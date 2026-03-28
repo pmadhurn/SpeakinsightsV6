@@ -6,7 +6,7 @@ Generates .ics (iCalendar) files for meetings and action items.
 import logging
 import os
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -74,8 +74,8 @@ class CalendarGenerator:
                         f"[{assignee}] (Due: {due})"
                     )
             event.add("description", "\n".join(desc_parts))
-            event.add("dtstamp", datetime.utcnow())
-            event.add("created", datetime.utcnow())
+            event.add("dtstamp", datetime.now(timezone.utc))
+            event.add("created", datetime.now(timezone.utc))
 
             # Attendees
             for attendee in attendees:
@@ -104,8 +104,8 @@ class CalendarGenerator:
                 todo.add("uid", f"task-{uuid.uuid4()}@speakinsights")
                 todo.add("summary", task.get("title", "Task"))
                 todo.add("description", task.get("context", ""))
-                todo.add("dtstamp", datetime.utcnow())
-                todo.add("created", datetime.utcnow())
+                todo.add("dtstamp", datetime.now(timezone.utc))
+                todo.add("created", datetime.now(timezone.utc))
 
                 # Parse due_date string to date/datetime
                 if isinstance(due_date, str):
