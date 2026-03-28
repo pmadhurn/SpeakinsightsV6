@@ -3,7 +3,7 @@ SpeakInsights v3 — Transcript Embedding Model (pgvector)
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Text, DateTime, Integer, Float, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from pgvector.sqlalchemy import Vector
@@ -25,7 +25,7 @@ class TranscriptEmbedding(Base):
     end_time = Column(Float, nullable=True)
     embedding = Column(Vector(768), nullable=False)  # nomic-embed-text dimension
     model_used = Column(String(100), default="nomic-embed-text")
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     meeting = relationship("Meeting", back_populates="transcript_embeddings")

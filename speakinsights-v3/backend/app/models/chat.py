@@ -3,7 +3,7 @@ SpeakInsights v3 — Chat Message Model
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Text, DateTime, Boolean, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
@@ -23,7 +23,7 @@ class ChatMessage(Base):
     is_rag = Column(Boolean, default=False)
     context_chunks = Column(JSONB, nullable=True)  # RAG context sources
     metadata_ = Column("metadata", JSONB, default=dict)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     meeting = relationship("Meeting", back_populates="chat_messages")

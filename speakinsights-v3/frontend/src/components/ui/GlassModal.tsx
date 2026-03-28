@@ -7,7 +7,7 @@ type ModalSize = 'sm' | 'md' | 'lg' | 'full';
 interface GlassModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title?: string;
+  title?: ReactNode;
   children: ReactNode;
   size?: ModalSize;
 }

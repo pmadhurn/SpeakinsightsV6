@@ -3,7 +3,7 @@ SpeakInsights v3 — Calendar Export Model
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Text, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
@@ -21,7 +21,7 @@ class CalendarExport(Base):
     export_type = Column(String(20), default="ics")  # ics
     tasks_included = Column(JSONB, nullable=True)  # List of task IDs included
     metadata_ = Column("metadata", JSONB, default=dict)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     meeting = relationship("Meeting", back_populates="calendar_exports")

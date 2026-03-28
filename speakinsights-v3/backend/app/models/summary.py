@@ -3,7 +3,7 @@ SpeakInsights v3 — Summary Model
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Text, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
@@ -20,10 +20,10 @@ class Summary(Base):
     content = Column(Text, nullable=True)
     structured_data = Column(JSONB, nullable=True)  # For key points, decisions as JSON arrays
     model_used = Column(String(100), nullable=True)
-    generation_time = Column(DateTime, nullable=True)
+    generation_time = Column(DateTime(timezone=True), nullable=True)
     metadata_ = Column("metadata", JSONB, default=dict)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     meeting = relationship("Meeting", back_populates="summaries")

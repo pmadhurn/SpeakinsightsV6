@@ -3,7 +3,7 @@ SpeakInsights v3 — Transcription Segment Model
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Text, DateTime, Float, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
@@ -28,7 +28,7 @@ class TranscriptionSegment(Base):
     word_count = Column(Integer, nullable=True)
     source = Column(String(20), default="live")  # "live" or "post_processing"
     metadata_ = Column("metadata", JSONB, default=dict)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     meeting = relationship("Meeting", back_populates="transcription_segments")

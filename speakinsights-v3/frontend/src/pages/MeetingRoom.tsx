@@ -80,7 +80,7 @@ export default function MeetingRoom() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   // Stores
-  const { sidebarOpen, sidebarTab, setSidebarOpen } = useUIStore();
+  const { sidebarOpen, sidebarTab, setSidebarOpen, setSidebarTab } = useUIStore();
   const { addSegment, setLiveCaption, clearTranscript } = useTranscriptStore();
   const { setCurrentMeeting } = useMeetingStore();
 

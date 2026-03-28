@@ -3,7 +3,7 @@ SpeakInsights v3 — Recording Models (composite + individual tracks)
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Text, DateTime, Float, Integer, BigInteger, ForeignKey, Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
@@ -29,9 +29,9 @@ class Recording(Base):
         nullable=False,
     )
     metadata_ = Column("metadata", JSONB, default=dict)
-    started_at = Column(DateTime, nullable=True)
-    completed_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     meeting = relationship("Meeting", back_populates="recordings")
@@ -58,7 +58,7 @@ class IndividualRecording(Base):
     )
     transcription_status = Column(String(20), default="pending")  # pending, processing, completed
     metadata_ = Column("metadata", JSONB, default=dict)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     meeting = relationship("Meeting", back_populates="individual_recordings")

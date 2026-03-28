@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { type ReactNode, type ButtonHTMLAttributes } from 'react';
 import { Loader2, type LucideIcon } from 'lucide-react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline' | 'cyan';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface GlassButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> {
@@ -24,6 +24,10 @@ const variantStyles: Record<ButtonVariant, string> = {
     'bg-transparent text-white/80 border border-white/10 hover:bg-white/10 hover:border-white/20',
   danger:
     'bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 hover:border-red-500/50',
+  outline:
+    'bg-transparent text-white/80 border-2 border-white/20 hover:border-white hover:bg-white/5',
+  cyan:
+    'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30 hover:border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.2)]',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

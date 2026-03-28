@@ -3,7 +3,7 @@ SpeakInsights v3 — Participant Model
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
@@ -22,9 +22,9 @@ class Participant(Base):
     is_approved = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     metadata_ = Column("metadata", JSONB, default=dict)
-    joined_at = Column(DateTime, nullable=True)
-    left_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    joined_at = Column(DateTime(timezone=True), nullable=True)
+    left_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     meeting = relationship("Meeting", back_populates="participants")

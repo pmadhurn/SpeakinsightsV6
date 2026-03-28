@@ -3,7 +3,7 @@ SpeakInsights v3 — Meeting Model
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Text, DateTime, Enum as SAEnum, Integer
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
@@ -30,10 +30,10 @@ class Meeting(Base):
     livekit_room_name = Column(String(255), nullable=True)
     max_participants = Column(Integer, default=20)
     settings = Column(JSONB, default=dict)
-    started_at = Column(DateTime, nullable=True)
-    ended_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    ended_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     participants = relationship("Participant", back_populates="meeting", cascade="all, delete-orphan")

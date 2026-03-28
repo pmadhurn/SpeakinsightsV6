@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { type ReactNode } from 'react';
 
-type GlassVariant = 'default' | 'heavy' | 'surface' | 'gradient';
+type GlassVariant = 'default' | 'heavy' | 'surface' | 'gradient' | 'solid';
 type GlowType = 'none' | 'cyan' | 'lavender';
 type Padding = 'none' | 'sm' | 'md' | 'lg';
 
@@ -20,6 +20,7 @@ const variantClasses: Record<GlassVariant, string> = {
   heavy: 'glass-heavy',
   surface: 'glass-surface',
   gradient: 'glass-gradient-border',
+  solid: 'bg-[#0a0c10] border border-white/10 rounded-[2rem] backdrop-blur-md',
 };
 
 const glowClasses: Record<GlowType, string> = {

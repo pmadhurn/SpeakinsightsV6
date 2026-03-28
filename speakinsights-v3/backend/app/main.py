@@ -137,6 +137,45 @@ async def lifespan(app: FastAPI):
     # Ensure DB tables exist
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Migrate existing columns from TIMESTAMP to TIMESTAMPTZ
+        # (create_all won't alter existing columns, so we do it manually)
+        # This is safe to run repeatedly — ALTER TYPE is a no-op if already TIMESTAMPTZ
+        for stmt in [
+            """ALTER TABLE meetings
+                ALTER COLUMN started_at TYPE TIMESTAMP WITH TIME ZONE,
+                ALTER COLUMN ended_at TYPE TIMESTAMP WITH TIME ZONE,
+                ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE,
+                ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE""",
+            """ALTER TABLE participants
+                ALTER COLUMN joined_at TYPE TIMESTAMP WITH TIME ZONE,
+                ALTER COLUMN left_at TYPE TIMESTAMP WITH TIME ZONE,
+                ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE""",
+            """ALTER TABLE recordings
+                ALTER COLUMN started_at TYPE TIMESTAMP WITH TIME ZONE,
+                ALTER COLUMN completed_at TYPE TIMESTAMP WITH TIME ZONE,
+                ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE""",
+            """ALTER TABLE individual_recordings
+                ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE""",
+            """ALTER TABLE transcription_segments
+                ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE""",
+            """ALTER TABLE summaries
+                ALTER COLUMN generation_time TYPE TIMESTAMP WITH TIME ZONE,
+                ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE,
+                ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE""",
+            """ALTER TABLE tasks
+                ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE,
+                ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE""",
+            """ALTER TABLE chat_messages
+                ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE""",
+            """ALTER TABLE calendar_exports
+                ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE""",
+            """ALTER TABLE transcript_embeddings
+                ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE""",
+        ]:
+            try:
+                await conn.execute(text(stmt))
+            except Exception as e:
+                logger.warning("Migration skipped (table may not exist yet): %s", e)
     logger.info("Database tables created / verified.")
 
     # Ensure storage directories exist

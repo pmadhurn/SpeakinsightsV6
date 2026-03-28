@@ -159,6 +159,7 @@ services:
     ports:
       - "7880:7880" # WebSocket + HTTP API
       - "7881:7881" # RTC/TCP
+      - "3478:3478/udp" # TURN UDP
       - "50000-50060:50000-50060/udp" # WebRTC UDP
     volumes:
       - ./livekit.yaml:/etc/livekit.yaml:ro
@@ -222,6 +223,7 @@ services:
       - HF_TOKEN=${HF_TOKEN:-}
     volumes:
       - whisperx-models:/root/.cache/huggingface
+      - whisperx-torch-cache:/root/.cache/torch
       - ./storage:/app/storage
     networks:
       - speakinsights-net
@@ -260,3 +262,7 @@ volumes:
   # WhisperX model cache (avoid re-downloading)
   whisperx-models:
     name: speakinsights-whisperx-models
+
+  # PyTorch model cache (wav2vec2 alignment model)
+  whisperx-torch-cache:
+    name: speakinsights-whisperx-torch-cache

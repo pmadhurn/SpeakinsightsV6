@@ -10,8 +10,8 @@ import {
 import Navbar from '../components/ui/GlassNavbar'; // Importing the separated Navbar
 
 // --- Shared Helper Components --- //
-export const GlassCard = ({ children, className = "", shimmer = false, variant = "default" }) => {
-  const variants = {
+export const GlassCard = ({ children, className = "", shimmer = false, variant = "default" }: { children: React.ReactNode; className?: string; shimmer?: boolean; variant?: string }) => {
+  const variants: Record<string, string> = {
     default: "bg-white/[0.03] border-white/10",
     gradient: "bg-gradient-to-br from-white/[0.08] to-transparent border-white/20 shadow-2xl",
     solid: "bg-[#0a0c10] border-white/10",
@@ -28,9 +28,9 @@ export const GlassCard = ({ children, className = "", shimmer = false, variant =
   );
 };
 
-export const GlassButton = ({ children, variant = "primary", icon: Icon, onClick, className = "", disabled = false }) => {
+export const GlassButton = ({ children, variant = "primary", size, icon: Icon, onClick, className = "", disabled = false }: { children: any; variant?: string; size?: string; icon?: any; onClick?: any; className?: string; disabled?: boolean }) => {
   const base = "relative flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:pointer-events-none overflow-hidden group tracking-tight";
-  const themes = {
+  const themes: Record<string, string> = {
     primary: "bg-white text-black hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]",
     secondary: "bg-white/5 text-white border border-white/10 hover:bg-white/10",
     cyan: "bg-cyan-500 text-white shadow-[0_0_30px_rgba(6,182,212,0.3)] hover:bg-cyan-400",
@@ -38,7 +38,7 @@ export const GlassButton = ({ children, variant = "primary", icon: Icon, onClick
   };
 
   return (
-    <button onClick={onClick} disabled={disabled} className={`${base} ${themes[variant]} ${className}`}>
+    <button onClick={onClick} disabled={disabled} className={`${base} ${themes[variant] || ''} ${className}`}>
       {variant === "primary" && (
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       )}
@@ -48,7 +48,7 @@ export const GlassButton = ({ children, variant = "primary", icon: Icon, onClick
   );
 };
 
-const SectionTitle = ({ subtitle, title, description, center = true }) => (
+const SectionTitle = ({ subtitle, title, description, center = true }: { subtitle: any; title: any; description?: any; center?: boolean }) => (
   <div className={`mb-16 ${center ? 'text-center' : 'text-left'}`}>
     <motion.span initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} className="text-cyan-400 text-xs font-black tracking-[0.4em] uppercase mb-4 block">
       {subtitle}
@@ -65,7 +65,7 @@ const SectionTitle = ({ subtitle, title, description, center = true }) => (
 );
 
 // --- Sub Components Internal to LandingPage --- //
-const ProcessStep = ({ step, title, body, active }) => (
+const ProcessStep = ({ step, title, body, active }: { step: string; title: string; body: string; active: boolean }) => (
   <div className={`transition-all duration-700 py-12 ${active ? 'opacity-100' : 'opacity-20'}`}>
     <div className={`text-5xl font-black mb-4 ${active ? 'text-cyan-400' : 'text-white/10'}`}>{step}</div>
     <h4 className="text-3xl font-black mb-4 uppercase tracking-tighter">{title}</h4>
@@ -88,7 +88,7 @@ const ROICalculator = () => {
                 <span className="font-bold text-sm uppercase tracking-wider">Meetings per Month</span>
                 <span className="text-cyan-400 font-black">{meetings}</span>
               </div>
-              <input type="range" min="1" max="100" value={meetings} onChange={(e) => setMeetings(e.target.value)} className="w-full accent-cyan-400 h-1 rounded-full cursor-pointer" />
+              <input type="range" min="1" max="100" value={meetings} onChange={(e) => setMeetings(Number(e.target.value))} className="w-full accent-cyan-400 h-1 rounded-full cursor-pointer" />
             </div>
           </div>
         </div>
