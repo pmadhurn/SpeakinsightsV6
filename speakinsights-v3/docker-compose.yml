@@ -159,7 +159,6 @@ services:
     ports:
       - "7880:7880" # WebSocket + HTTP API
       - "7881:7881" # RTC/TCP
-      - "3478:3478/udp" # TURN UDP
       - "50000-50060:50000-50060/udp" # WebRTC UDP
     volumes:
       - ./livekit.yaml:/etc/livekit.yaml:ro

@@ -58,11 +58,9 @@ export default function MeetingRoom() {
   const navigate = useNavigate();
   const state = (location.state as LocationState) || {};
 
-  // Dynamically construct the LiveKit URL from the current browser domain.
-  // This ensures it works across any tunnel domain (mac.madhur.dev,
-  // meetings.madhur.dev, localhost) without config changes.
-  // Nginx proxies /livekit-ws/ -> livekit-server:7880 inside Docker.
-  const computedLivekitUrl = (() => {
+  // Prioritize the LiveKit URL returned by the backend (for LiveKit Cloud),
+  // otherwise fallback to the local Nginx proxy URL for self-hosting.
+  const computedLivekitUrl = state.livekitUrl || (() => {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${proto}//${window.location.host}/livekit-ws/`;
   })();
