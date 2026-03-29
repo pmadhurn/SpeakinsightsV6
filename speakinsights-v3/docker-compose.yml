@@ -187,7 +187,7 @@ services:
         condition: service_started
     environment:
       - EGRESS_CONFIG_FILE=/etc/egress.yaml
-      - LIVEKIT_WS_URL=ws://livekit-server:7880
+      - LIVEKIT_WS_URL=${LIVEKIT_URL}
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
     volumes:

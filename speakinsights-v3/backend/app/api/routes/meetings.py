@@ -50,16 +50,22 @@ async def _generate_code(db: AsyncSession) -> str:
 
 
 def _get_livekit_external_url(request: Request) -> str:
-    """Build a full LiveKit WebSocket URL from the incoming request's domain.
+    """Return the LiveKit WebSocket URL for the frontend to connect to.
 
-    This allows the same codebase to work across multiple tunnel domains
-    (e.g. mac.madhur.dev, meetings.madhur.dev) without changing .env.
-    The frontend nginx proxies /livekit-ws/ to livekit-server:7880.
+    If LIVEKIT_EXTERNAL_URL is a full URL (e.g. wss://...livekit.cloud),
+    use it directly — this is the LiveKit Cloud case.
+    If it's a relative path (e.g. /livekit-ws/), construct a full URL
+    from the incoming request's domain for self-hosted setups.
     """
+    external = settings.LIVEKIT_EXTERNAL_URL
+    if external and external.startswith(("ws://", "wss://", "http://", "https://")):
+        return external
+    # Self-hosted fallback: construct from request domain
     proto = request.headers.get("x-forwarded-proto", "http")
     ws_proto = "wss" if proto == "https" else "ws"
     host = request.headers.get("host", "localhost")
-    return f"{ws_proto}://{host}/livekit-ws/"
+    path = external or "/livekit-ws/"
+    return f"{ws_proto}://{host}{path}"
 
 
 async def _meeting_to_response(meeting: Meeting, db: AsyncSession) -> MeetingResponse:

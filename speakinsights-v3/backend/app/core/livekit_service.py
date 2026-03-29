@@ -519,7 +519,8 @@ class LiveKitService:
                 return None
 
             # EgressStatus: EGRESS_STARTING=0, EGRESS_ACTIVE=1, EGRESS_ENDING=2,
-            #               EGRESS_COMPLETE=3, EGRESS_FAILED=4
+            #               EGRESS_COMPLETE=3, EGRESS_FAILED=4,
+            #               EGRESS_ABORTED=5, EGRESS_LIMIT_REACHED=6
             status = getattr(info, 'status', None)
             # Handle both enum and int values
             status_val = status if isinstance(status, int) else getattr(status, 'value', status)
@@ -529,8 +530,8 @@ class LiveKitService:
             if status_val == 3:  # EGRESS_COMPLETE
                 logger.info("Egress %s completed!", egress_id)
                 return info
-            elif status_val == 4:  # EGRESS_FAILED
-                logger.error("Egress %s failed!", egress_id)
+            elif status_val in (4, 5, 6):  # EGRESS_FAILED / ABORTED / LIMIT_REACHED
+                logger.error("Egress %s terminal status: %s", egress_id, status)
                 return info
 
             await asyncio.sleep(poll_interval)

@@ -164,13 +164,20 @@ class LobbyManager:
         """Approve a participant: generate LiveKit token, update DB, notify."""
         logger.info("Approving participant %s for meeting %s", participant_id, meeting_id)
 
-        # Build LiveKit external URL dynamically from WebSocket request headers
-        livekit_external_url = settings.LIVEKIT_EXTERNAL_URL  # fallback
-        if ws:
+        # Build LiveKit external URL for the participant to connect to.
+        # If LIVEKIT_EXTERNAL_URL is a full URL (LiveKit Cloud), use it directly.
+        # Otherwise, construct from the WebSocket request headers (self-hosted).
+        external = settings.LIVEKIT_EXTERNAL_URL
+        if external and external.startswith(("ws://", "wss://", "http://", "https://")):
+            livekit_external_url = external
+        elif ws:
             proto = ws.headers.get("x-forwarded-proto", "http")
             ws_proto = "wss" if proto == "https" else "ws"
             host = ws.headers.get("host", "localhost")
-            livekit_external_url = f"{ws_proto}://{host}/livekit-ws/"
+            path = external or "/livekit-ws/"
+            livekit_external_url = f"{ws_proto}://{host}{path}"
+        else:
+            livekit_external_url = external or "ws://localhost:7880"
 
         try:
             # Fetch meeting and participant from DB
