@@ -3,7 +3,9 @@ SpeakInsights v3 — WhisperX Client
 Async HTTP client for the self-hosted WhisperX transcription service.
 """
 
+import asyncio
 import logging
+import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -13,6 +15,13 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Circuit-breaker constants
+# ---------------------------------------------------------------------------
+_CB_FAILURE_THRESHOLD = 3     # Open circuit after N consecutive failures
+_CB_RECOVERY_TIMEOUT = 30.0  # Seconds to wait before probing again
+_CHUNK_TIMEOUT = 25.0         # Must be < frontend's 30 s axios timeout
+
 
 class WhisperXClient:
     """Async client wrapping the WhisperX HTTP transcription service."""
@@ -20,6 +29,11 @@ class WhisperXClient:
     def __init__(self) -> None:
         self._base_url: str = settings.WHISPERX_URL.rstrip("/")
         self._default_language: str = settings.DEFAULT_LANGUAGE
+
+        # Circuit-breaker state
+        self._consecutive_failures: int = 0
+        self._circuit_open_since: float | None = None
+
         logger.info("WhisperXClient initialised (url=%s)", self._base_url)
 
     # ------------------------------------------------------------------
@@ -63,6 +77,44 @@ class WhisperXClient:
         return parsed
 
     # ------------------------------------------------------------------
+    # Circuit breaker helpers
+    # ------------------------------------------------------------------
+
+    def _record_success(self) -> None:
+        """Reset the circuit breaker on a successful request."""
+        if self._consecutive_failures > 0:
+            logger.info(
+                "WhisperX recovered after %d consecutive failures",
+                self._consecutive_failures,
+            )
+        self._consecutive_failures = 0
+        self._circuit_open_since = None
+
+    def _record_failure(self) -> None:
+        """Track a failure; open the circuit if threshold is reached."""
+        self._consecutive_failures += 1
+        if self._consecutive_failures >= _CB_FAILURE_THRESHOLD and self._circuit_open_since is None:
+            self._circuit_open_since = time.monotonic()
+            logger.warning(
+                "WhisperX circuit OPEN after %d consecutive failures — "
+                "skipping requests for %.0fs",
+                self._consecutive_failures,
+                _CB_RECOVERY_TIMEOUT,
+            )
+
+    def _is_circuit_open(self) -> bool:
+        """Return True if we should skip the request (circuit is open)."""
+        if self._circuit_open_since is None:
+            return False
+        elapsed = time.monotonic() - self._circuit_open_since
+        if elapsed >= _CB_RECOVERY_TIMEOUT:
+            # Allow a single probe request
+            logger.info("WhisperX circuit half-open — sending probe request")
+            self._circuit_open_since = None  # will re-open on next failure
+            return False
+        return True
+
+    # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
@@ -74,6 +126,10 @@ class WhisperXClient:
     ) -> list[dict[str, Any]]:
         """Send an audio chunk to the WhisperX service for transcription.
 
+        Uses a circuit-breaker so that when WhisperX is overloaded (e.g.
+        loading alignment models) we stop hammering it with requests that
+        would pile up and make the problem worse.
+
         Args:
             audio_bytes: Raw audio bytes (WAV/OGG).
             language: Language code or 'auto' for detection.
@@ -81,13 +137,28 @@ class WhisperXClient:
 
         Returns:
             List of standardised transcript segments with word-level timestamps.
+
+        Raises:
+            WhisperXUnavailableError: If the circuit breaker is open.
+            httpx.HTTPStatusError: On non-transient HTTP errors from WhisperX.
+            Exception: On unexpected errors.
         """
+        # ── Circuit breaker gate ──
+        if self._is_circuit_open():
+            logger.debug(
+                "WhisperX circuit open — dropping chunk (offset=%.1fs)",
+                timestamp_offset,
+            )
+            raise WhisperXUnavailableError(
+                f"Circuit open ({self._consecutive_failures} consecutive failures)"
+            )
+
         try:
             lang = language if language != "auto" else None
             max_retries = 2
             for attempt in range(1, max_retries + 1):
                 try:
-                    async with httpx.AsyncClient(timeout=120.0) as client:
+                    async with httpx.AsyncClient(timeout=_CHUNK_TIMEOUT) as client:
                         files = {"file": ("chunk.wav", audio_bytes, "audio/wav")}
                         data: dict[str, Any] = {}
                         if lang:
@@ -104,14 +175,13 @@ class WhisperXClient:
 
                     result = response.json()
                     segments = result.get("segments", result if isinstance(result, list) else [])
-                    # WhisperX service already applies the offset in its
-                    # format_result(), so we do NOT pass it again here.
                     parsed = self._parse_segments(segments)
                     logger.debug(
                         "Transcribed audio chunk: %d segments (offset=%.1fs)",
                         len(parsed),
                         timestamp_offset,
                     )
+                    self._record_success()
                     return parsed
                 except (httpx.ReadTimeout, httpx.ConnectError, httpx.ConnectTimeout) as retry_exc:
                     if attempt < max_retries:
@@ -119,17 +189,21 @@ class WhisperXClient:
                             "WhisperX chunk request failed (attempt %d/%d), retrying: %s",
                             attempt, max_retries, retry_exc,
                         )
-                        import asyncio
-                        await asyncio.sleep(3)
+                        await asyncio.sleep(2)
                     else:
+                        self._record_failure()
                         raise
             return []  # unreachable
         except httpx.HTTPStatusError as exc:
+            self._record_failure()
             logger.error(
                 "WhisperX HTTP error %s: %s", exc.response.status_code, exc.response.text
             )
             raise
+        except WhisperXUnavailableError:
+            raise
         except Exception as exc:
+            self._record_failure()
             logger.error("Failed to transcribe audio chunk: %s", exc, exc_info=True)
             raise
 
@@ -219,6 +293,10 @@ class WhisperXClient:
         except Exception as exc:
             logger.warning("WhisperX health check failed: %s", exc)
             return False
+
+
+class WhisperXUnavailableError(Exception):
+    """Raised when the circuit breaker is open (WhisperX is known-down)."""
 
 
 # Singleton instance

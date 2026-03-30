@@ -260,9 +260,30 @@ export default function MeetingRoom() {
     }
   }, [meetingId, navigate]);
 
-  const handleLeaveMeeting = useCallback(() => {
-    navigate('/', { replace: true });
-  }, [navigate]);
+  const handleLeaveMeeting = useCallback(async () => {
+    // If host leaves, end the meeting for everyone
+    if (isHost && meetingId) {
+      try {
+        await meetingsApi.end(meetingId);
+        glassToast.success('Meeting ended');
+        navigate(`/meeting/${meetingId}/review`, { replace: true });
+      } catch {
+        navigate('/', { replace: true });
+      }
+    } else {
+      navigate('/', { replace: true });
+    }
+  }, [isHost, meetingId, navigate]);
+
+  const handleKickParticipant = useCallback(async (identity: string) => {
+    if (!meetingId) return;
+    try {
+      await meetingsApi.kick(meetingId, identity);
+      glassToast.success(`Removed ${identity} from the meeting`);
+    } catch {
+      glassToast.error('Failed to remove participant');
+    }
+  }, [meetingId]);
 
   const toggleCaptions = useCallback(() => {
     setCaptionsEnabled((prev) => !prev);
@@ -421,6 +442,7 @@ export default function MeetingRoom() {
                         lobbyParticipants={lobbyParticipants}
                         onApproveLobby={approveLobby}
                         onDeclineLobby={declineLobby}
+                        onKickParticipant={handleKickParticipant}
                         hostIdentity={isHost ? participantName : undefined}
                       />
                     </motion.div>

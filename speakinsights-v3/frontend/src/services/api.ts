@@ -52,6 +52,9 @@ export const meetings = {
 
   delete: (id: string) =>
     api.delete(`/meetings/${id}`).then((r) => r.data),
+
+  kick: (meetingId: string, participantIdentity: string) =>
+    api.post(`/meetings/${meetingId}/kick/${encodeURIComponent(participantIdentity)}`).then((r) => r.data),
 };
 
 // ─── Transcriptions ───

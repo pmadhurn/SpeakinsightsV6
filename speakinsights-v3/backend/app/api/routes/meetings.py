@@ -404,6 +404,30 @@ async def decline_participant(
     return {"status": "declined", "participant_id": str(participant_id)}
 
 
+@router.post("/{meeting_id}/kick/{participant_identity}")
+async def kick_participant(
+    meeting_id: uuid.UUID,
+    participant_identity: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Host kicks a participant from the active LiveKit room."""
+    result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
+    meeting = result.scalar_one_or_none()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    room_name = meeting.livekit_room_name
+    if not room_name:
+        raise HTTPException(status_code=400, detail="Meeting has no active room")
+
+    try:
+        await livekit_service.remove_participant(room_name, participant_identity)
+        logger.info("Kicked participant '%s' from room %s", participant_identity, room_name)
+        return {"status": "kicked", "identity": participant_identity}
+    except Exception as exc:
+        logger.error("Failed to kick participant '%s': %s", participant_identity, exc)
+        raise HTTPException(status_code=500, detail=f"Failed to kick participant: {exc}")
+
 @router.post("/{meeting_id}/start")
 async def start_meeting(
     meeting_id: uuid.UUID,
