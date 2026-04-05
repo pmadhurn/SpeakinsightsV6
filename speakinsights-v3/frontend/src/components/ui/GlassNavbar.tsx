@@ -30,7 +30,7 @@ export default function Navbar() {
         
         {/* Main Floating Nav Pill */}
         <div className={`relative flex items-center justify-between h-14 px-8 rounded-full border transition-all duration-500 z-50 ${
-          scrolled ? 'bg-[#0a0c10]/80 backdrop-blur-2xl border-white/10 shadow-2xl scale-[0.98]' : 'bg-white/[0.03] backdrop-blur-md border-white/5'
+          scrolled ? 'bg-white/[0.03] backdrop-blur-2xl border-white/10 shadow-2xl scale-[0.98]' : 'bg-white/[0.03] backdrop-blur-md border-white/5'
         }`}>
           
           {/* Logo Section */}
