@@ -23,18 +23,18 @@ The system is built on a containerized microservices architecture coordinated vi
 - **Presentation Layer:** A React UI served via an Nginx reverse proxy.
 - **Application Logic Layer:** An asynchronous FastAPI backend acting as the orchestrator for REST endpoints and WebSocket signaling.
 - **Media Transport Layer:** A dual-compatible WebRTC SFU layer that defaults to self-hosted LiveKit in Docker Compose and can be switched to **LiveKit Cloud** via environment configuration. It manages low-latency media and egress recordings, including download of cloud-generated recordings back to local storage for processing.
-- **AI & Analytics Layer:** Dedicated services for speech-to-text (WhisperX) and language modeling (Ollama).
+- **AI & Analytics Layer:** Dedicated services for speech-to-text (WhisperX) and language modeling via a **unified LLM Provider** that supports both local Ollama inference and cloud-based OpenRouter API access (e.g., MiniMax M2.5, GPT-4o, Claude 3.5 Sonnet). The active provider is runtime-switchable without restarting services.
 - **Persistence Layer:** PostgreSQL with the `pgvector` extension for relational data and embeddings, supplemented by Redis for caching and message brokering.
 
 ### Design Patterns and Architectural Decisions
 - **Dual-Path Transcription Strategy:** To balance latency and fidelity, the frontend leverages the browser Web Speech API for immediate captions while the backend performs a higher-fidelity asynchronous path through WhisperX (including forced alignment and speaker-attributed segments from isolated participant tracks).
 - **Event-Driven Post-Processing:** When a meeting concludes, the system triggers an 11-step automated pipeline decoupled from the request thread: recording download (if LiveKit Cloud egress IDs are provided) → WhisperX transcription → VADER segment sentiment → chronological merge → transcript chunking → embedding generation → AI summary → action-item extraction → deep sentiment analysis via Ollama → `.ics` calendar export → completion state update.
-- **Retrieval-Augmented Generation (RAG):** The system implements a local RAG architecture. Meeting transcripts are chunked, embedded using `nomic-embed-text`, and stored in `pgvector`. User queries trigger a semantic search, surfacing relevant chunks that are injected into the prompt for the Llama model, ensuring grounded, hallucination-free AI responses.
+- **Retrieval-Augmented Generation (RAG):** The system implements a local RAG architecture. Meeting transcripts are chunked, embedded using `nomic-embed-text` (always via Ollama), and stored in `pgvector`. User queries trigger a semantic search, surfacing relevant chunks that are injected into the prompt for the active LLM provider (either local Ollama or cloud OpenRouter), ensuring grounded, hallucination-free AI responses.
 
 ### Data Flow and Communication
 - **Client ↔ Backend:** Real-time state updates (like lobby approvals) utilize WebSockets. Standard CRUD operations and AI queries use RESTful HTTP calls.
 - **Client ↔ LiveKit:** WebRTC handles video/audio streams with UDP when available, but production cloud deployments are compatible with **LiveKit Cloud/API over WSS/TCP** for proxy/CDN environments like Cloudflare where UDP passthrough is not supported.
-- **Backend ↔ AI Services:** Background tasks communicate with WhisperX via HTTP REST and Ollama via HTTP to submit audio batches and extraction prompts.
+- **Backend ↔ AI Services:** Background tasks communicate with WhisperX via HTTP REST and the active LLM provider (Ollama via local HTTP or OpenRouter via HTTPS cloud API) to submit audio batches and extraction prompts. A unified `LLMProvider` facade abstracts the active backend so all consumers (chat, summaries, post-processing) are provider-agnostic.
 
 ---
 
@@ -56,7 +56,9 @@ The system is built on a containerized microservices architecture coordinated vi
 
 ### AI Engine & Workers
 - **WhisperX Service (`/whisperx-service`):** A customized Python wrapper around the WhisperX model, deployed independently to isolate heavy GPU/CPU compute from the core API. Responsibilities include transcription, text alignment, and sentiment scoring per utterance.
-- **Ollama Engine:** Runs locally (or within Docker with NVIDIA toolkit bindings) to handle LLM inferences. Responsibilities include executing detailed prompts for summarization and feature extraction.
+- **LLM Provider Layer (`/backend/app/core/llm_provider.py`):** A unified facade that abstracts the active LLM backend, delegating calls to either Ollama or OpenRouter based on a runtime-switchable setting. All downstream consumers (chat, summaries, task extraction, sentiment analysis) interact exclusively through this provider, making them completely provider-agnostic.
+- **Ollama Engine:** Runs locally (or within Docker with NVIDIA toolkit bindings) to handle LLM inferences. Serves as the default provider for summarization, chat, and feature extraction. Additionally, Ollama always handles embeddings (via `nomic-embed-text`) since cloud API providers do not offer compatible embedding endpoints.
+- **OpenRouter Client (`/backend/app/core/openrouter_client.py`):** An alternative cloud LLM backend that connects to the OpenRouter API, providing access to dozens of models (free and paid) including MiniMax M2.5, Gemini, DeepSeek, GPT-4o, and Claude. Supports chain-of-thought reasoning with `reasoning_details` preservation across multi-turn conversations.
 
 ### Storage & Media Server
 - **LiveKit Server & Egress:** Facilitates room creation, peer-to-peer routing, and writes room/track recordings to mounted `/storage` volumes. LiveKit Egress runs as a dedicated service and is a key part of deterministic per-participant audio capture used by downstream transcription and analytics.
@@ -79,7 +81,9 @@ The system is built on a containerized microservices architecture coordinated vi
 - **LiveKit:** An open-source alternative to the Zoom SDK. The architecture supports both local self-hosted containers and **LiveKit Cloud** deployments—enabling flexible scaling. For Cloudflare-fronted setups, SpeakInsights uses the LiveKit Cloud/API path over secure WebSocket/TCP transports, avoiding hard dependency on UDP routing. By using LiveKit Egress to record individual participant tracks, SpeakInsights completely bypasses the need for error-prone AI speaker diarization.
 
 ### AI & Machine Learning
-- **Ollama (llama3.2:3b default + nomic-embed-text):** Selected for seamless local deployment, eliminating per-token API costs and preserving data privacy. Optional larger models can be used where resources allow.
+- **Dual LLM Provider Architecture:** The system supports two LLM backends, switchable at runtime via the Settings UI or REST API (`PUT /api/llm/provider`):
+  - **Ollama (llama3.2:3b default + nomic-embed-text):** Selected for seamless local deployment, eliminating per-token API costs and preserving data privacy. Optional larger models can be used where resources allow. Always handles embeddings for RAG.
+  - **OpenRouter API (minimax/minimax-m2.5:free default):** Provides cloud-based access to advanced models (MiniMax, Gemini, DeepSeek, GPT-4o, Claude) without managing local GPU resources. Includes support for chain-of-thought reasoning with `reasoning_details` preserved across multi-turn conversations. Features a curated model catalogue with both free and paid tiers.
 - **WhisperX:** Selected over standard Whisper. WhisperX implements Voice Activity Detection (VAD) and forced alignment, producing precise timestamping essential for syncing transcripts to recorded playback.
 
 ### Data & Infrastructure
@@ -102,9 +106,9 @@ Once a host concludes the session, the backend orchestrator:
 4. Merges all segments into a single chronological transcript.
 5. Chunks transcript content for retrieval and embedding.
 6. Stores transcript embeddings in PostgreSQL + pgvector.
-7. Generates executive summaries and key decisions with Ollama.
+7. Generates executive summaries and key decisions via the active LLM provider (Ollama or OpenRouter).
 8. Extracts structured action items with owners, priorities, and due-date intent.
-9. Runs deep post-meeting sentiment analysis via Ollama.
+9. Runs deep post-meeting sentiment analysis via the active LLM provider.
 10. Generates `.ics` exports for actionable tasks.
 11. Marks the meeting lifecycle as completed.
 
@@ -112,7 +116,14 @@ Once a host concludes the session, the backend orchestrator:
 Utterances are scored algorithmically (via VADER and LLM validation). The frontend maps these scores into a color-coded "Mood Timeline" synced to the meeting video playback, allowing reviewers to rapidly jump to moments of high friction or enthusiasm.
 
 ### Privacy-Preserving RAG Chat
-Users can interact with a ChatGPT-like interface localized entirely to the context of their past meetings. By searching nearest-neighbor embeddings in `pgvector`, the AI engine can answer specific queries ("What did Alice say about the budget?") directly supported by meeting citations.
+Users can interact with a ChatGPT-like interface localized entirely to the context of their past meetings. By searching nearest-neighbor embeddings in `pgvector` (always generated via Ollama's `nomic-embed-text`), the active LLM provider answers specific queries ("What did Alice say about the budget?") directly supported by meeting citations. When using OpenRouter with reasoning-enabled models like MiniMax M2.5, the system preserves `reasoning_details` across multi-turn conversations, enabling deeper chain-of-thought analysis.
+
+### Multi-Provider LLM Settings
+The Settings page provides a runtime-switchable LLM provider configuration with a visual toggle between:
+- **Ollama (Local):** Free, private, zero-latency inference using locally installed models.
+- **OpenRouter (Cloud):** Access to advanced cloud models (free and paid tiers) via API, with a curated model catalogue and real-time provider health monitoring.
+
+The active provider can be changed without restarting any services. Health checks monitor connectivity to both providers, and the system gracefully falls back to Ollama if OpenRouter is unavailable or misconfigured.
 
 ### Interoperable Export (ICS)
 The engine formats generated action items with target dates into standard `.ics` payloads, empowering users to immediately integrate the resultant intelligence into Outlook, Google Calendar, or Apple Calendar.
@@ -156,6 +167,7 @@ While currently orchestrated for a cohesive single-node (or local development) D
 - **Message Queue Worker Separation:** Rather than executing the 11-step data pipeline in FastAPI background tasks, leveraging Celery or BullMQ paired with Redis will decouple job execution, enabling scalable worker pools dedicated purely to AI tasks.
 - **Enterprise Authentication:** Implement JWT-based SSO (SAML/OAuth2) alongside Role-Based Access Control (RBAC) to transition from "link-sharing" to enterprise-grade organizational models.
 - **Real-Time AI Intervention:** Stream live audio tracks through WebSocket arrays directly to an online LLM to provide active meeting prompts (e.g., dynamically suggesting questions during an interview).
+- **Extended Cloud Provider Support:** The `LLMProvider` abstraction is architected to easily support additional backends (e.g., direct OpenAI, Anthropic, AWS Bedrock) by implementing the shared client interface without modifying any consumer code.
 
 ---
 
@@ -163,4 +175,4 @@ While currently orchestrated for a cohesive single-node (or local development) D
 
 SpeakInsights v3 represents a sophisticated, expertly engineered synthesis of modern web technologies, real-time communications, and generative AI. It demonstrates an advanced understanding of containerized microservice architectures and tackles profound industry problems regarding data sovereignty and subscription fatigue.
 
-By strategically weaving an open-source SFU (LiveKit) with localized AI models (WhisperX and Ollama), SpeakInsights not only functions as a polished meeting application but establishes a highly extensible, secure foundation for the future of enterprise communication. Its architectural rigors—including async database drivers, fault-tolerant media layers, and a meticulous RAG-powered analytics pipeline—position it at the highest tier of modern full-stack engineering portfolios.
+By strategically weaving an open-source SFU (LiveKit) with a hybrid AI layer that supports both localized models (WhisperX and Ollama) and cloud-based LLMs (via OpenRouter), SpeakInsights not only functions as a polished meeting application but establishes a highly extensible, secure foundation for the future of enterprise communication. The runtime-switchable multi-provider LLM architecture ensures users can choose between maximum privacy (local inference) and maximum capability (cloud models with advanced reasoning) without code changes. Its architectural rigors—including async database drivers, fault-tolerant media layers, provider-agnostic LLM abstraction, and a meticulous RAG-powered analytics pipeline—position it at the highest tier of modern full-stack engineering portfolios.

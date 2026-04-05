@@ -216,7 +216,7 @@ export default function Transcription() {
     }
 
     return (
-        <div className="min-h-screen pt-20 pb-16">
+        <div className="min-h-screen pt-32 pb-16">
             <div className="max-w-5xl mx-auto px-4">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                     {/* ─── Header ─── */}

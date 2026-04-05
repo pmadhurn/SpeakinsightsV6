@@ -212,7 +212,7 @@ export default function AIChat() {
   };
 
   return (
-    <div className="min-h-[100dvh] pt-24 md:pt-32 pb-4 md:pb-6 bg-[#02060B] text-white selection:bg-cyan-500/30 font-sans relative overflow-x-hidden flex flex-col">
+    <div className="min-h-[100dvh] pt-32 pb-4 md:pb-6 bg-[#02060B] text-white selection:bg-cyan-500/30 font-sans relative overflow-x-hidden flex flex-col">
       
       {/* Background Meshes */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -220,7 +220,7 @@ export default function AIChat() {
         <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-purple-500/5 blur-[120px] rounded-full" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-6 flex h-[calc(100dvh-7rem)] md:h-[calc(100dvh-9.5rem)] relative z-10 w-full md:gap-6">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 flex h-[calc(100dvh-9rem)] md:h-[calc(100dvh-9.5rem)] relative z-10 w-full md:gap-6">
         
         {/* Mobile Shadow Overlay for open Drawer */}
         <AnimatePresence>

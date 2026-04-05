@@ -187,7 +187,7 @@ export default function Settings() {
   const paidModels = openrouterModels.filter((m) => m.category === 'paid');
 
   return (
-    <div className="min-h-screen pt-24 pb-16">
+    <div className="min-h-screen pt-32 pb-16">
       <div className="max-w-2xl mx-auto px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           {/* Header */}

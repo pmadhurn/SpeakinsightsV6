@@ -255,7 +255,7 @@ export default function MeetingReview() {
   const meetingDuration = meeting?.duration || 0;
 
   return (
-    <div className="min-h-screen pt-20 pb-16">
+    <div className="min-h-screen pt-32 pb-16">
       <div className="max-w-[1400px] mx-auto px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           {/* ─── Top info bar ─── */}
@@ -439,7 +439,7 @@ export default function MeetingReview() {
             </div>
 
             {/* RIGHT SIDE (35%) — Transcript */}
-            <div className="flex-[35] min-w-0 sticky top-24" style={{ maxHeight: 'calc(100vh - 120px)' }}>
+            <div className="flex-[35] min-w-0 sticky top-28" style={{ maxHeight: 'calc(100vh - 140px)' }}>
               <div className="flex flex-col h-full">
                 {segments.length > 0 && (
                   <div className="flex justify-end mb-2">
