@@ -148,7 +148,7 @@ async def send_chat_message(
     as context for the LLM.
     """
     session_id = data.session_id or str(uuid.uuid4())
-    model = data.model or settings.OLLAMA_MODEL
+    model = data.model or llm_provider.default_model
     context_sources = None
 
     # Get chat history for this session (last 10 messages)
@@ -225,7 +225,7 @@ async def stream_chat_message(
     Same logic as POST / but returns tokens as they arrive from Ollama.
     """
     session_id = data.session_id or str(uuid.uuid4())
-    model = data.model or settings.OLLAMA_MODEL
+    model = data.model or llm_provider.default_model
     context_sources = None
 
     # Get chat history

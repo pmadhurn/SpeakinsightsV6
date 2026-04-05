@@ -52,6 +52,13 @@ class LLMProvider:
             return openrouter_client
         return ollama_client
 
+    @property
+    def default_model(self) -> str:
+        """Return the default model name for the active provider."""
+        if self._active_provider == "openrouter":
+            return settings.OPENROUTER_MODEL
+        return settings.OLLAMA_MODEL
+
     # ------------------------------------------------------------------
     # Delegated LLM methods
     # ------------------------------------------------------------------
