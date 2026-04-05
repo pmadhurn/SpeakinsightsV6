@@ -165,7 +165,7 @@ async def create_meeting(
 async def list_meetings(
     status: str | None = Query(None, description="Filter by status"),
     search: str | None = Query(None, description="Search by title"),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
@@ -705,3 +705,28 @@ async def delete_meeting(
     logger.info("Deleted meeting %s", meeting_id)
     return None
 
+
+@router.post("/{meeting_id}/stop-processing")
+async def stop_processing(
+    meeting_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Force a meeting out of 'processing' status back to 'completed'.
+
+    Use this when post-processing is stuck or the user wants to skip it.
+    """
+    result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
+    meeting = result.scalar_one_or_none()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    if meeting.status != "processing":
+        raise HTTPException(status_code=400, detail="Meeting is not currently processing")
+
+    meeting.status = "completed"
+    if not meeting.ended_at:
+        meeting.ended_at = datetime.now(timezone.utc)
+    await db.flush()
+
+    logger.info("Force-stopped processing for meeting %s", meeting_id)
+    return {"status": "completed", "meeting_id": str(meeting_id)}

@@ -27,7 +27,7 @@ export const meetings = {
     api.post<CreateMeetingResponse>('/meetings', data).then((r) => r.data),
 
   list: () =>
-    api.get<{ meetings: Meeting[] }>('/meetings').then((r) => r.data.meetings),
+    api.get<{ meetings: Meeting[] }>('/meetings', { params: { limit: 500 } }).then((r) => r.data.meetings),
 
   get: (id: string) =>
     api.get<Meeting>(`/meetings/${id}`).then((r) => r.data),
@@ -58,6 +58,9 @@ export const meetings = {
 
   retranscribe: (meetingId: string) =>
     api.post(`/meetings/${meetingId}/retranscribe`, {}, { timeout: 60000 }).then((r) => r.data),
+
+  stopProcessing: (meetingId: string) =>
+    api.post(`/meetings/${meetingId}/stop-processing`).then((r) => r.data),
 };
 
 // ─── Transcriptions ───
