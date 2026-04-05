@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.calendar_generator import calendar_generator
 from app.core.livekit_service import livekit_service
-from app.core.ollama_client import ollama_client
+from app.core.llm_provider import llm_provider
 from app.core.recording_manager import recording_manager
 from app.core.sentiment_service import sentiment_service
 from app.core.whisperx_client import whisperx_client
@@ -259,8 +259,9 @@ class PostProcessingPipeline:
     async def _step_transcribe_and_sentiment(self, meeting_id: str) -> list[dict[str, Any]]:
         """Transcribe each individual audio track via WhisperX, run VADER on segments.
 
-        Falls back to existing live transcription segments from the DB
-        if no audio recording files are available (e.g. when egress failed).
+        Falls back to extracting audio from the composite MP4 recording
+        when individual tracks are missing, and finally to existing live
+        transcription segments from the DB if no recordings at all.
         """
         all_segments: list[dict[str, Any]] = []
 
@@ -287,7 +288,7 @@ class PostProcessingPipeline:
                     import os
                     if not os.path.exists(file_path):
                         logger.warning(
-                            "Audio file not found for %s: %s — will try live transcription fallback",
+                            "Audio file not found for %s: %s — will try composite fallback",
                             speaker_name, file_path,
                         )
                         continue
@@ -355,13 +356,95 @@ class PostProcessingPipeline:
                         await db.commit()
 
             # ---------------------------------------------------------------
-            # FALLBACK: If no audio files were available (egress failed),
-            # use live transcription segments already saved in the DB by the
-            # frontend's real-time /chunk endpoint.
+            # FALLBACK 1: No individual audio tracks found — try extracting
+            # audio from the composite MP4 recording.
             # ---------------------------------------------------------------
             if not has_audio_files or not all_segments:
                 logger.info(
-                    "No egress audio files available for meeting %s — "
+                    "No individual audio tracks for meeting %s — "
+                    "attempting composite MP4 audio extraction",
+                    meeting_id,
+                )
+
+                extracted_audio = await recording_manager.extract_audio_from_composite(
+                    meeting_id,
+                )
+
+                if extracted_audio:
+                    logger.info(
+                        "Composite audio extracted: %s — sending to WhisperX",
+                        extracted_audio,
+                    )
+
+                    # Determine speaker name from the first participant, or use meeting host
+                    speaker_label = "Speaker"
+                    if individual_recordings:
+                        speaker_label = individual_recordings[0].speaker_name or "Speaker"
+                    else:
+                        # Try to get the host name from the meeting
+                        meeting_result = await db.execute(
+                            select(Meeting).where(Meeting.id == uuid.UUID(meeting_id))
+                        )
+                        meeting_obj = meeting_result.scalar_one_or_none()
+                        if meeting_obj and meeting_obj.host_name:
+                            speaker_label = meeting_obj.host_name
+
+                    try:
+                        segments = await whisperx_client.transcribe_file(
+                            extracted_audio, language=settings.DEFAULT_LANGUAGE
+                        )
+
+                        for seg in segments:
+                            text = seg.get("text", "").strip()
+                            if not text:
+                                continue
+
+                            sentiment = sentiment_service.analyze_segment(text)
+
+                            db_segment = TranscriptionSegment(
+                                id=uuid.uuid4(),
+                                meeting_id=uuid.UUID(meeting_id),
+                                speaker_name=speaker_label,
+                                text=text,
+                                language=seg.get("language"),
+                                start_time=seg.get("start", 0.0),
+                                end_time=seg.get("end", 0.0),
+                                confidence=seg.get("confidence"),
+                                sentiment_score=sentiment["compound"],
+                                sentiment_label=sentiment["label"],
+                                word_count=len(text.split()),
+                                source="post_processing",
+                                metadata_={"words": seg.get("words", [])},
+                            )
+                            db.add(db_segment)
+
+                            all_segments.append({
+                                "speaker": speaker_label,
+                                "text": text,
+                                "start": seg.get("start", 0.0),
+                                "end": seg.get("end", 0.0),
+                                "sentiment": sentiment,
+                            })
+
+                        await db.commit()
+                        logger.info(
+                            "Transcribed %d segments from composite audio for meeting %s",
+                            len(all_segments), meeting_id,
+                        )
+
+                    except Exception as exc:
+                        logger.error(
+                            "Failed to transcribe extracted composite audio: %s",
+                            exc, exc_info=True,
+                        )
+
+            # ---------------------------------------------------------------
+            # FALLBACK 2: If still no segments, use live transcription
+            # segments already saved in the DB (if any survive deletion).
+            # ---------------------------------------------------------------
+            if not all_segments:
+                logger.info(
+                    "No audio-based transcription succeeded for meeting %s — "
                     "falling back to existing live transcription segments from DB",
                     meeting_id,
                 )
@@ -469,7 +552,7 @@ class PostProcessingPipeline:
 
         # Generate embeddings for all chunks
         chunk_texts = [c["text"] for c in chunks]
-        embeddings = await ollama_client.generate_embeddings_batch(chunk_texts)
+        embeddings = await llm_provider.generate_embeddings_batch(chunk_texts)
 
         # Save to DB
         async with async_session_factory() as db:
@@ -573,7 +656,7 @@ class PostProcessingPipeline:
             meeting = result.scalar_one_or_none()
             title = meeting.title if meeting else "Untitled Meeting"
 
-        summary_data = await ollama_client.summarize_transcript(transcript_text, title)
+        summary_data = await llm_provider.summarize_transcript(transcript_text, title)
 
         # Save summary records
         async with async_session_factory() as db:
@@ -627,7 +710,7 @@ class PostProcessingPipeline:
         if not transcript_text:
             return []
 
-        tasks_data = await ollama_client.extract_tasks(transcript_text)
+        tasks_data = await llm_provider.extract_tasks(transcript_text)
 
         async with async_session_factory() as db:
             for task in tasks_data:
@@ -671,7 +754,7 @@ class PostProcessingPipeline:
         if not transcript_text:
             return
 
-        sentiment_data = await ollama_client.analyze_sentiment(transcript_text, speaker_names)
+        sentiment_data = await llm_provider.analyze_sentiment(transcript_text, speaker_names)
 
         async with async_session_factory() as db:
             db.add(Summary(

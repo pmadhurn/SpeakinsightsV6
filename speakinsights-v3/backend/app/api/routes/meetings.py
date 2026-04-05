@@ -578,6 +578,86 @@ async def end_meeting(
     }
 
 
+@router.post("/{meeting_id}/retranscribe")
+async def retranscribe_meeting(
+    meeting_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    """Re-transcribe a meeting using stored recordings.
+
+    Clears existing transcription segments, summaries, tasks, embeddings,
+    and calendar exports, then re-runs the full post-processing pipeline
+    on the recordings that are still on disk.
+    """
+    result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
+    meeting = result.scalar_one_or_none()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    if meeting.status == "active":
+        raise HTTPException(status_code=400, detail="Cannot re-transcribe an active meeting")
+
+    # Check that recordings exist on disk
+    disk_files = recording_manager.list_meeting_recordings(str(meeting_id))
+    if not disk_files:
+        raise HTTPException(
+            status_code=400,
+            detail="No recordings found on disk for this meeting",
+        )
+
+    # Set status to processing
+    meeting.status = "processing"
+    await db.flush()
+
+    # Clear existing post-processing artefacts so the pipeline creates fresh ones
+    from app.models.transcription import TranscriptionSegment
+    from app.models.summary import Summary
+    from app.models.task import Task
+    from app.models.embedding import TranscriptEmbedding
+    from app.models.calendar_export import CalendarExport
+
+    await db.execute(
+        delete(TranscriptionSegment).where(TranscriptionSegment.meeting_id == meeting_id)
+    )
+    await db.execute(
+        delete(Summary).where(Summary.meeting_id == meeting_id)
+    )
+    await db.execute(
+        delete(Task).where(Task.meeting_id == meeting_id)
+    )
+    await db.execute(
+        delete(TranscriptEmbedding).where(TranscriptEmbedding.meeting_id == meeting_id)
+    )
+    await db.execute(
+        delete(CalendarExport).where(CalendarExport.meeting_id == meeting_id)
+    )
+
+    # Reset individual recording transcription statuses
+    ind_result = await db.execute(
+        select(IndividualRecording).where(IndividualRecording.meeting_id == meeting_id)
+    )
+    for rec in ind_result.scalars().all():
+        rec.transcription_status = "pending"
+
+    await db.flush()
+
+    logger.info(
+        "Cleared existing transcription data for meeting %s, starting re-transcription",
+        meeting_id,
+    )
+
+    # Trigger post-processing in background (no egress IDs — recordings are already on disk)
+    background_tasks.add_task(post_processing.process_meeting, str(meeting_id))
+
+    return {
+        "status": "processing",
+        "meeting_id": str(meeting_id),
+        "message": "Re-transcription started. Existing data has been cleared.",
+        "recording_files": len(disk_files),
+    }
+
+
 @router.get("/{meeting_id}/participants", response_model=list[ParticipantResponse])
 async def list_participants(
     meeting_id: uuid.UUID,

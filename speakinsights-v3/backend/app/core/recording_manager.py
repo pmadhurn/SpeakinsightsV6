@@ -161,6 +161,110 @@ class RecordingManager:
             logger.error("Failed to get duration for %s: %s", file_path, exc, exc_info=True)
             return None
 
+    def get_composite_path(self, meeting_id: str) -> str | None:
+        """Return the composite recording path if it exists on disk.
+
+        Args:
+            meeting_id: Meeting UUID.
+
+        Returns:
+            Absolute path to the composite MP4, or None if it doesn't exist.
+        """
+        expected = Path(self._storage_path) / "recordings" / meeting_id / f"composite_{meeting_id}.mp4"
+        if expected.exists():
+            return str(expected)
+
+        # Fallback: look for any .mp4 file in the meeting directory
+        meeting_dir = Path(self._storage_path) / "recordings" / meeting_id
+        if meeting_dir.exists():
+            for entry in meeting_dir.iterdir():
+                if entry.is_file() and entry.suffix.lower() == ".mp4":
+                    return str(entry)
+
+        return None
+
+    async def extract_audio_from_composite(
+        self,
+        meeting_id: str,
+        speaker_name: str = "Speaker",
+    ) -> str | None:
+        """Extract audio from the composite MP4 recording to a WAV file.
+
+        Uses ffmpeg to pull just the audio channel.  The resulting WAV file
+        is stored alongside the original composite in the meeting's recording
+        directory so it can be reused by subsequent retranscribe calls.
+
+        Args:
+            meeting_id: Meeting UUID.
+            speaker_name: Label for the extracted audio (used in filename).
+
+        Returns:
+            Path to the extracted WAV file, or None on failure.
+        """
+        composite_path = self.get_composite_path(meeting_id)
+        if not composite_path:
+            logger.warning("No composite recording found for meeting %s", meeting_id)
+            return None
+
+        out_path = str(
+            Path(self._storage_path)
+            / "recordings"
+            / meeting_id
+            / f"extracted_audio_{meeting_id}.wav"
+        )
+
+        # Skip extraction if the file already exists (idempotent)
+        if Path(out_path).exists():
+            logger.info("Extracted audio already exists: %s", out_path)
+            return out_path
+
+        logger.info(
+            "Extracting audio from composite %s → %s", composite_path, out_path
+        )
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "ffmpeg",
+                "-i", composite_path,
+                "-vn",                   # No video
+                "-acodec", "pcm_s16le",  # WAV PCM 16-bit
+                "-ar", "16000",          # 16kHz (optimal for Whisper)
+                "-ac", "1",              # Mono
+                "-y",                    # Overwrite
+                out_path,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            _, stderr = await proc.communicate()
+
+            if proc.returncode != 0:
+                logger.error(
+                    "ffmpeg audio extraction failed (rc=%d): %s",
+                    proc.returncode,
+                    stderr.decode().strip()[-500:],
+                )
+                return None
+
+            size = Path(out_path).stat().st_size
+            logger.info(
+                "Audio extracted successfully: %s (%.1f MB)",
+                out_path,
+                size / (1024 * 1024),
+            )
+            return out_path
+
+        except FileNotFoundError:
+            logger.error("ffmpeg not found — cannot extract audio")
+            return None
+        except Exception as exc:
+            logger.error(
+                "Failed to extract audio from composite for meeting %s: %s",
+                meeting_id,
+                exc,
+                exc_info=True,
+            )
+            return None
+
     # ------------------------------------------------------------------
     # Cleanup
     # ------------------------------------------------------------------

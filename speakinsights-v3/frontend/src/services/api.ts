@@ -55,6 +55,9 @@ export const meetings = {
 
   kick: (meetingId: string, participantIdentity: string) =>
     api.post(`/meetings/${meetingId}/kick/${encodeURIComponent(participantIdentity)}`).then((r) => r.data),
+
+  retranscribe: (meetingId: string) =>
+    api.post(`/meetings/${meetingId}/retranscribe`, {}, { timeout: 60000 }).then((r) => r.data),
 };
 
 // ─── Transcriptions ───
@@ -207,6 +210,18 @@ export const models = {
 
   getInfo: (name: string) =>
     api.get(`/models/${name}`).then((r) => r.data),
+};
+
+// ─── LLM Settings ───
+export const llmSettings = {
+  get: () =>
+    api.get('/llm').then((r) => r.data),
+
+  setProvider: (provider: string, openrouterModel?: string) =>
+    api.put('/llm/provider', { provider, openrouter_model: openrouterModel }).then((r) => r.data),
+
+  getOpenRouterModels: () =>
+    api.get('/llm/openrouter/models').then((r) => r.data),
 };
 
 export default api;

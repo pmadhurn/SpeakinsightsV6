@@ -25,10 +25,18 @@ class Settings(BaseSettings):
     # WhisperX
     WHISPERX_URL: str = "http://localhost:9000"
 
+    # LLM Provider: "ollama" or "openrouter"
+    LLM_PROVIDER: str = "ollama"
+
     # Ollama
     OLLAMA_URL: str = "http://host.docker.internal:11434"
     OLLAMA_MODEL: str = "llama3.2:3b"
     EMBEDDING_MODEL: str = "nomic-embed-text"
+
+    # OpenRouter
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "minimax/minimax-m2.5:free"
+    OPENROUTER_REASONING: bool = True
 
     # Storage
     STORAGE_PATH: str = "/app/storage"

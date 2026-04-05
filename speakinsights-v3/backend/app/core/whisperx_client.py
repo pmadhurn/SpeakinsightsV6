@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 _CB_FAILURE_THRESHOLD = 3     # Open circuit after N consecutive failures
 _CB_RECOVERY_TIMEOUT = 30.0  # Seconds to wait before probing again
-_CHUNK_TIMEOUT = 25.0         # Must be < frontend's 30 s axios timeout
+_CHUNK_TIMEOUT = 45.0         # Must comfortably cover alignment-model loads
 
 
 class WhisperXClient:
@@ -232,7 +232,18 @@ class WhisperXClient:
             lang = language if language != "auto" else None
             audio_bytes = path.read_bytes()
 
-            mime = "audio/ogg" if path.suffix == ".ogg" else "audio/wav"
+            mime_map = {
+                ".ogg": "audio/ogg",
+                ".wav": "audio/wav",
+                ".mp3": "audio/mpeg",
+                ".flac": "audio/flac",
+                ".m4a": "audio/mp4",
+                ".webm": "audio/webm",
+                ".mp4": "video/mp4",
+                ".aac": "audio/aac",
+                ".opus": "audio/opus",
+            }
+            mime = mime_map.get(path.suffix.lower(), "audio/wav")
 
             max_retries = 3
             for attempt in range(1, max_retries + 1):

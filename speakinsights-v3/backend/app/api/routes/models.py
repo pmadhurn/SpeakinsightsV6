@@ -10,7 +10,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
-from app.core.ollama_client import ollama_client
+from app.core.llm_provider import llm_provider
 from app.schemas.models import (
     ModelPullRequest,
     OllamaModelInfo,
@@ -31,7 +31,7 @@ router = APIRouter()
 async def list_models():
     """List all installed Ollama models with name, size, family, and quantization."""
     try:
-        raw_models = await ollama_client.list_models()
+        raw_models = await llm_provider.list_models()
     except Exception as exc:
         logger.error("Failed to list models: %s", exc)
         raise HTTPException(status_code=502, detail=f"Ollama service error: {exc}")
@@ -73,7 +73,7 @@ async def pull_model(data: ModelPullRequest):
 
     async def progress_generator():
         try:
-            async for update in ollama_client.pull_model(data.name):
+            async for update in llm_provider.pull_model(data.name):
                 status = update.get("status", "")
                 total = update.get("total", 0)
                 completed = update.get("completed", 0)
@@ -112,7 +112,7 @@ async def pull_model(data: ModelPullRequest):
 async def delete_model(model_name: str):
     """Delete an installed Ollama model."""
     try:
-        await ollama_client.delete_model(model_name)
+        await llm_provider.delete_model(model_name)
     except Exception as exc:
         logger.error("Failed to delete model %s: %s", model_name, exc)
         raise HTTPException(status_code=502, detail=f"Failed to delete model: {exc}")
@@ -131,6 +131,7 @@ async def get_running_models():
     """Show currently loaded/running models in Ollama."""
     try:
         import httpx
+        from app.core.ollama_client import ollama_client
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(f"{ollama_client._base_url}/api/ps")
             resp.raise_for_status()
@@ -148,7 +149,7 @@ async def get_running_models():
 async def get_model_info(model_name: str):
     """Get detailed information about a specific Ollama model."""
     try:
-        info = await ollama_client.model_info(model_name)
+        info = await llm_provider.model_info(model_name)
     except Exception as exc:
         logger.error("Failed to get info for model %s: %s", model_name, exc)
         raise HTTPException(status_code=502, detail=f"Failed to get model info: {exc}")

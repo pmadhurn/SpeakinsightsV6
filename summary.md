@@ -3,7 +3,7 @@
 ## 1. Project Overview
 
 ### Purpose of the Project
-SpeakInsights is a cutting-edge, privacy-first, multi-person meeting intelligence platform. It provides a complete, self-hosted, end-to-end solution for video conferencing, real-time transcription, and post-meeting AI analysis. The project is designed to deliver a modern, premium user experience—featuring a "Frosted Aurora" glassmorphism aesthetic—while keeping all sensitive data (audio, video, transcripts) entirely within the deployment environment.
+SpeakInsights is a cutting-edge, privacy-first, multi-person meeting intelligence platform. It provides a complete, end-to-end solution for video conferencing, real-time transcription, and post-meeting AI analysis, with a self-hosted-first Docker deployment and optional LiveKit Cloud operation. The project is designed to deliver a modern, premium user experience—featuring a "Frosted Aurora" glassmorphism aesthetic—while keeping sensitive data (audio, video, transcripts) within the deployment boundary.
 
 ### Core Problem It Solves
 Modern organizations rely heavily on video conferencing and AI meeting assistants, but this reliance often compromises data sovereignty. Integrating multiple SaaS solutions (e.g., Zoom for video, Otter.ai for transcription, ChatGPT for summaries) results in fragmented workflows, escalating subscription costs, and significant security risks due to data leaving the corporate network. SpeakInsights solves this by unifying a WebRTC Selective Forwarding Unit (SFU) with local, open-weights Large Language Models (LLMs) and local Automatic Speech Recognition (ASR) into a single, cohesive, dockerized platform.
@@ -12,6 +12,7 @@ Modern organizations rely heavily on video conferencing and AI meeting assistant
 - **Privacy-Conscious Enterprises:** Organizations handling proprietary, classified, or sensitive information (e.g., healthcare, legal, finance) where uploading transcripts to third-party cloud AI vendors is legally prohibitive.
 - **Development & Agile Teams:** Teams conducting sprint planning, daily stand-ups, or retrospectives who need automated, rigorous extraction of action items and decisions without administrative overhead.
 - **Educational Institutions:** Deployments requiring robust meeting capabilities and accessibility features (live captions, multi-language support) without per-user licensing fees.
+- **Teams Running Structured Meetings:** Meeting rooms currently target practical small-team sessions (up to ~20 participants), balancing transcript quality, recording reliability, and post-meeting analysis latency.
 
 ---
 
@@ -21,18 +22,18 @@ Modern organizations rely heavily on video conferencing and AI meeting assistant
 The system is built on a containerized microservices architecture coordinated via Docker Compose. It separates the application into distinct, highly specialized layers:
 - **Presentation Layer:** A React UI served via an Nginx reverse proxy.
 - **Application Logic Layer:** An asynchronous FastAPI backend acting as the orchestrator for REST endpoints and WebSocket signaling.
-- **Media Transport Layer:** A dual-compatible WebRTC SFU layer supporting both self-hosted LiveKit and **LiveKit Cloud**. It manages low-latency video rendering and handles egress recordings (including polling and HTTP downloading of externally-stored Cloud recordings back to local storage).
+- **Media Transport Layer:** A dual-compatible WebRTC SFU layer that defaults to self-hosted LiveKit in Docker Compose and can be switched to **LiveKit Cloud** via environment configuration. It manages low-latency media and egress recordings, including download of cloud-generated recordings back to local storage for processing.
 - **AI & Analytics Layer:** Dedicated services for speech-to-text (WhisperX) and language modeling (Ollama).
 - **Persistence Layer:** PostgreSQL with the `pgvector` extension for relational data and embeddings, supplemented by Redis for caching and message brokering.
 
 ### Design Patterns and Architectural Decisions
-- **Dual-Path Transcription Strategy:** To balance latency and fidelity, the frontend leverages the browser's Web Speech API for immediate, zero-latency live captions. Simultaneously, an asynchronous "accurate path" chunks the recorded audio and passes it to WhisperX to generate highly accurate, long-form transcripts with word-level timestamps and speaker attribution.
-- **Event-Driven Post-Processing:** When a meeting concludes, the system triggers a 7-step automated processing pipeline (transcription → alignment → embedding generation → AI summary → action item extraction → sentiment analysis → `.ics` calendar generation) decoupled from the end-user request thread.
+- **Dual-Path Transcription Strategy:** To balance latency and fidelity, the frontend leverages the browser Web Speech API for immediate captions while the backend performs a higher-fidelity asynchronous path through WhisperX (including forced alignment and speaker-attributed segments from isolated participant tracks).
+- **Event-Driven Post-Processing:** When a meeting concludes, the system triggers an 11-step automated pipeline decoupled from the request thread: recording download (if LiveKit Cloud egress IDs are provided) → WhisperX transcription → VADER segment sentiment → chronological merge → transcript chunking → embedding generation → AI summary → action-item extraction → deep sentiment analysis via Ollama → `.ics` calendar export → completion state update.
 - **Retrieval-Augmented Generation (RAG):** The system implements a local RAG architecture. Meeting transcripts are chunked, embedded using `nomic-embed-text`, and stored in `pgvector`. User queries trigger a semantic search, surfacing relevant chunks that are injected into the prompt for the Llama model, ensuring grounded, hallucination-free AI responses.
 
 ### Data Flow and Communication
 - **Client ↔ Backend:** Real-time state updates (like lobby approvals) utilize WebSockets. Standard CRUD operations and AI queries use RESTful HTTP calls.
-- **Client ↔ LiveKit:** WebRTC handles video/audio streams via UDP (fallback to TCP), bypassing the core API for minimal latency.
+- **Client ↔ LiveKit:** WebRTC handles video/audio streams with UDP when available, but production cloud deployments are compatible with **LiveKit Cloud/API over WSS/TCP** for proxy/CDN environments like Cloudflare where UDP passthrough is not supported.
 - **Backend ↔ AI Services:** Background tasks communicate with WhisperX via HTTP REST and Ollama via HTTP to submit audio batches and extraction prompts.
 
 ---
@@ -43,7 +44,8 @@ The system is built on a containerized microservices architecture coordinated vi
 - **React 18 & Vite:** Provides a blistering fast development server and optimized production build.
 - **Modular Architecture:** Refactored from a monolithic codebase into a highly structured system comprising dedicated directories for `components`, `hooks`, `pages`, `services`, and `stores`—guaranteeing long-term maintainability.
 - **Zustand:** Manages complex real-time application state without the boilerplate of Redux.
-- **TailwindCSS v4:** Enables the custom "Frosted Aurora" UI through utility-first styling, providing the necessary glassmorphism effects and dynamic background animations.
+- **TailwindCSS v3.4.4:** Enables the custom "Frosted Aurora" UI through utility-first styling, providing the necessary glassmorphism effects and dynamic background animations.
+- **UI/UX Supporting Libraries:** Uses LiveKit React components, Framer Motion, Recharts, Lucide icons, React Router, and toast notifications to support real-time conferencing, analytics, and interaction feedback.
 - **Responsibilities:** Interface rendering, LiveKit client integration for dynamic video grids, Web Speech API integration for live captions, and seamless WebSocket coordination.
 
 ### Backend (`/backend`)
@@ -57,7 +59,7 @@ The system is built on a containerized microservices architecture coordinated vi
 - **Ollama Engine:** Runs locally (or within Docker with NVIDIA toolkit bindings) to handle LLM inferences. Responsibilities include executing detailed prompts for summarization and feature extraction.
 
 ### Storage & Media Server
-- **LiveKit Server & Egress:** Facilitates room creation, peer-to-peer routing, and streams output directly to standard media files (MP4, individual audio tracks) located in the mounted `/storage` volume.
+- **LiveKit Server & Egress:** Facilitates room creation, peer-to-peer routing, and writes room/track recordings to mounted `/storage` volumes. LiveKit Egress runs as a dedicated service and is a key part of deterministic per-participant audio capture used by downstream transcription and analytics.
 - **PostgreSQL 16 & Redis 7:** PostgreSQL ensures ACID compliance for user/meeting metadata, while Redis facilitates rapid state retrievals and future-proofs the system for message-queue implementations (like Celery).
 
 ---
@@ -66,23 +68,24 @@ The system is built on a containerized microservices architecture coordinated vi
 
 ### Frontend
 - **React 18 + TypeScript + Vite:** Chosen for rendering speed, type safety, and fast build times.
-- **TailwindCSS 4:** Chosen for rapid, design-system-driven aesthetic implementations.
+- **TailwindCSS 3.4.4:** Chosen for rapid, design-system-driven aesthetic implementations.
+- **Live UI Stack:** `@livekit/components-react`, `framer-motion`, `recharts`, `lucide-react`, `react-router-dom`, and `react-hot-toast` support conferencing UX, visual analytics, navigation, and notifications.
 
 ### Backend
 - **FastAPI (Python 3.11+):** Selected for its native asynchronous capabilities, automatic OpenAPI (Swagger) documentation generation, and exceptional throughput.
 - **SQLAlchemy + asyncpg + Alembic:** Provides a robust, full-featured ORM while preventing blocking operations on the primary event loop.
 
 ### Real-Time & Audio/Video
-- **LiveKit:** An open-source alternative to the Zoom SDK. The architecture supports both local self-hosted containers and **LiveKit Cloud** deployments—enabling flexible scaling. By using LiveKit Egress to record individual participant tracks, SpeakInsights completely bypasses the need for error-prone AI speaker diarization.
+- **LiveKit:** An open-source alternative to the Zoom SDK. The architecture supports both local self-hosted containers and **LiveKit Cloud** deployments—enabling flexible scaling. For Cloudflare-fronted setups, SpeakInsights uses the LiveKit Cloud/API path over secure WebSocket/TCP transports, avoiding hard dependency on UDP routing. By using LiveKit Egress to record individual participant tracks, SpeakInsights completely bypasses the need for error-prone AI speaker diarization.
 
 ### AI & Machine Learning
-- **Ollama (llama3.2:3b / llama3.1:8b / nomic-embed-text):** Selected for its seamless local deployment, completely eliminating API costs and ensuring 100% data privacy.
+- **Ollama (llama3.2:3b default + nomic-embed-text):** Selected for seamless local deployment, eliminating per-token API costs and preserving data privacy. Optional larger models can be used where resources allow.
 - **WhisperX:** Selected over standard Whisper. WhisperX implements Voice Activity Detection (VAD) and forced alignment, producing precise timestamping essential for syncing transcripts to recorded playback.
 
 ### Data & Infrastructure
 - **PostgreSQL 16 w/ pgvector:** Picked for its ability to unified relational data storage and vector embeddings in a single technology stack, reducing architectural complexity.
 - **Redis 7:** Currently caching and signaling state; positioned to support scalable task queues.
-- **Docker & Docker Compose:** Guarantees environment consistency across MacOS (Apple Silicon) and Windows (WSL2 + NVIDIA Toolkit).
+- **Docker & Docker Compose:** Guarantees environment consistency across MacOS (Apple Silicon) and Windows (WSL2 + NVIDIA Toolkit), with a Windows-specific compose override for Ollama GPU pass-through and automatic model initialization.
 
 ---
 
@@ -93,9 +96,17 @@ Meetings generate unique cryptographic join codes. Participants undergo a lobby 
 
 ### Granular Post-Meeting Intelligence
 Once a host concludes the session, the backend orchestrator:
-1. Distills individual participant audio files via WhisperX.
-2. Aggregates and interleaves the responses to recreate the temporal flow of the conversation.
-3. Injects the transcript into an Ollama instance to synthesize an Executive Summary, Key Decisions, and specific Action Items with assigned owners and severities.
+1. Optionally downloads finalized recordings from LiveKit Cloud egress into local storage.
+2. Transcribes isolated participant tracks via WhisperX.
+3. Computes segment-level VADER sentiment during transcript ingestion.
+4. Merges all segments into a single chronological transcript.
+5. Chunks transcript content for retrieval and embedding.
+6. Stores transcript embeddings in PostgreSQL + pgvector.
+7. Generates executive summaries and key decisions with Ollama.
+8. Extracts structured action items with owners, priorities, and due-date intent.
+9. Runs deep post-meeting sentiment analysis via Ollama.
+10. Generates `.ics` exports for actionable tasks.
+11. Marks the meeting lifecycle as completed.
 
 ### Sentiment Analysis & Mood Timeline
 Utterances are scored algorithmically (via VADER and LLM validation). The frontend maps these scores into a color-coded "Mood Timeline" synced to the meeting video playback, allowing reviewers to rapidly jump to moments of high friction or enthusiasm.
@@ -133,11 +144,16 @@ The architecture explicitly addresses the inherent unreliability of heavy ML inf
 
 ## 8. Scalability & Future Improvements
 
+### Deployment & Operations Notes
+- **Environment bootstrap:** Deployment expects copying `.env.example` to `.env` and filling LiveKit/Ollama/CORS values before first run.
+- **Windows GPU path:** `docker-compose.windows.yml` overlays the base stack to run Ollama in-container with NVIDIA GPU support and model pre-pull initialization.
+- **Networking:** Cloudflare-friendly operation is supported through LiveKit Cloud/API over WSS/TCP, while self-hosted mode can still use UDP/TCP media paths directly.
+
 ### Scalability Posture
 While currently orchestrated for a cohesive single-node (or local development) Docker deployment, the architecture is primed for horizontal scalability. LiveKit inherently supports distributed clustering using Redis. FastAPI and the frontend can map redundantly behind load balancers.
 
 ### Future Enhancements
-- **Message Queue Worker Separation:** Rather than executing the 7-step data pipeline in FastAPI background tasks, leveraging Celery or BullMQ paired with Redis will decouple job execution, enabling scalable worker pools dedicated purely to AI tasks.
+- **Message Queue Worker Separation:** Rather than executing the 11-step data pipeline in FastAPI background tasks, leveraging Celery or BullMQ paired with Redis will decouple job execution, enabling scalable worker pools dedicated purely to AI tasks.
 - **Enterprise Authentication:** Implement JWT-based SSO (SAML/OAuth2) alongside Role-Based Access Control (RBAC) to transition from "link-sharing" to enterprise-grade organizational models.
 - **Real-Time AI Intervention:** Stream live audio tracks through WebSocket arrays directly to an online LLM to provide active meeting prompts (e.g., dynamically suggesting questions during an interview).
 
@@ -145,6 +161,6 @@ While currently orchestrated for a cohesive single-node (or local development) D
 
 ## 9. Conclusion
 
-SpeakInsights v3 represents a sophisticated, expertly engineered synthesis of modern web technologies, real-time communications, and generative AI. It demonstrates an advanced understanding of containerized microservice architectures and tackles profound industry problems regarding data sovereignty and subscription fatigue. 
+SpeakInsights v3 represents a sophisticated, expertly engineered synthesis of modern web technologies, real-time communications, and generative AI. It demonstrates an advanced understanding of containerized microservice architectures and tackles profound industry problems regarding data sovereignty and subscription fatigue.
 
-By strategically weaving an open-source SFU (LiveKit) with localized AI models (WhisperX and Ollama), SpeakInsights not only functions as a polished meeting application but establishes a highly extensible, secure foundation for the future of enterprise communication. Its architectural rigors—including async database drivers, fault-tolerant media layers, and a meticulous RAG-powered analytics pipeline—position it at the highest tier of modern full-stack engineering portoflios.
+By strategically weaving an open-source SFU (LiveKit) with localized AI models (WhisperX and Ollama), SpeakInsights not only functions as a polished meeting application but establishes a highly extensible, secure foundation for the future of enterprise communication. Its architectural rigors—including async database drivers, fault-tolerant media layers, and a meticulous RAG-powered analytics pipeline—position it at the highest tier of modern full-stack engineering portfolios.

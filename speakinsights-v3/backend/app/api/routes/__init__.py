@@ -12,6 +12,7 @@ from app.api.routes.recordings import router as recordings_router
 from app.api.routes.calendar import router as calendar_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.models import router as models_router
+from app.api.routes.llm_settings import router as llm_settings_router
 
 __all__ = [
     "health_router",
@@ -22,6 +23,7 @@ __all__ = [
     "calendar_router",
     "chat_router",
     "models_router",
+    "llm_settings_router",
 ]
 
 # Route prefix mapping (used by main.py):
@@ -33,3 +35,4 @@ __all__ = [
 # calendar_router       → /api/calendar  (.ics export)
 # chat_router           → /api/chat      (RAG-powered AI chat)
 # models_router         → /api/models    (Ollama model management)
+# llm_settings_router   → /api/llm       (LLM provider settings)
