@@ -41,6 +41,36 @@ class OpenRouterClient:
             "X-Title": "SpeakInsights",
         }
 
+    @staticmethod
+    def _extract_json(text: str) -> Any:
+        """Extract JSON from a response that may be wrapped in markdown code fences."""
+        import re
+        # Strip markdown code fences like ```json ... ``` or ``` ... ```
+        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip(), flags=re.IGNORECASE)
+        cleaned = re.sub(r'```\s*$', '', cleaned.strip())
+        # Try parsing the cleaned text
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+        # Fallback: find the first { ... } or [ ... ] block
+        for start_char, end_char in [('{', '}'), ('[', ']')]:
+            start = text.find(start_char)
+            if start == -1:
+                continue
+            depth = 0
+            for i in range(start, len(text)):
+                if text[i] == start_char:
+                    depth += 1
+                elif text[i] == end_char:
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            return json.loads(text[start:i + 1])
+                        except json.JSONDecodeError:
+                            break
+        raise json.JSONDecodeError("No valid JSON found", text, 0)
+
     # ------------------------------------------------------------------
     # Generic generation (via chat completions)
     # ------------------------------------------------------------------
@@ -51,7 +81,7 @@ class OpenRouterClient:
         model: Optional[str] = None,
         format: str = "json",
         temperature: float = 0.3,
-        max_tokens: int = 2048,
+        max_tokens: int = 16384,
     ) -> dict[str, Any]:
         """Generic LLM generation call via OpenRouter chat completions.
 
@@ -159,6 +189,7 @@ class OpenRouterClient:
                 "model": model,
                 "messages": messages,
                 "stream": False,
+                "max_tokens": 16384,
             }
 
             if self._enable_reasoning:
@@ -207,6 +238,7 @@ class OpenRouterClient:
                 "model": model,
                 "messages": messages,
                 "stream": True,
+                "max_tokens": 16384,
             }
 
             if self._enable_reasoning:
@@ -279,7 +311,7 @@ Return ONLY valid JSON, no extra text."""
 
         result = await self.generate(prompt, temperature=0.3, format="json")
         try:
-            parsed = json.loads(result["response"])
+            parsed = self._extract_json(result["response"])
         except json.JSONDecodeError:
             logger.warning("Failed to parse summary JSON, returning raw response")
             parsed = {
@@ -325,7 +357,7 @@ Return ONLY a valid JSON array, no extra text."""
 
         result = await self.generate(prompt, temperature=0.2, format="json")
         try:
-            parsed = json.loads(result["response"])
+            parsed = self._extract_json(result["response"])
             if isinstance(parsed, dict):
                 for key in ("tasks", "actionItems", "action_items", "items"):
                     if key in parsed and isinstance(parsed[key], list):
@@ -374,7 +406,7 @@ Return ONLY valid JSON, no extra text."""
 
         result = await self.generate(prompt, temperature=0.3, format="json")
         try:
-            parsed = json.loads(result["response"])
+            parsed = self._extract_json(result["response"])
         except json.JSONDecodeError:
             logger.warning("Failed to parse sentiment JSON")
             parsed = {

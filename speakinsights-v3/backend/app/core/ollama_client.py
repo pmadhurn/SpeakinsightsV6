@@ -46,7 +46,7 @@ class OllamaClient:
         model: Optional[str] = None,
         format: str = "json",
         temperature: float = 0.3,
-        max_tokens: int = 2048,
+        max_tokens: int = 8192,
     ) -> dict[str, Any]:
         """Generic LLM generation call.
 

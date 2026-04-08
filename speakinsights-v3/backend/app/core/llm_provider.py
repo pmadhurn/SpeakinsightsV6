@@ -69,7 +69,7 @@ class LLMProvider:
         model: Optional[str] = None,
         format: str = "json",
         temperature: float = 0.3,
-        max_tokens: int = 2048,
+        max_tokens: int = 16384,
     ) -> dict[str, Any]:
         """Generate text via the active provider."""
         client = self._get_client()
