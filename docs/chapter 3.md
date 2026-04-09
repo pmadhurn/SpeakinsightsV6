@@ -1,128 +1,64 @@
-# Chapter 3
-# Project Management
+Chapter 3
+Project Management
 
-## 3.1 Project Planning & Objectives
+3.1 Project Planning and Objectives
 
-The primary aim of project planning is to orchestrate, manage, and continuously monitor the development lifecycle of SpeakInsights. This ensures that the meeting intelligence platform is delivered within the stipulated timeframe, adheres to stringent quality standards, and provides a seamless, intuitive user experience. Effective project management guarantees that resources are allocated optimally, potential risks are proactively identified and mitigated, and all core architectural and functional objectives are successfully realised.
+The primary aim of project planning within the context of the SpeakInsights platform is to orchestrate, manage, and continuously monitor the entire development lifecycle. In the realm of modern software engineering, particularly for systems integrating complex artificial intelligence and real-time communication protocols, robust project management is not merely an administrative overhead but a foundational necessity. This planning phase ensures that the meeting intelligence platform is delivered within the stipulated academic timeframe, adheres to stringent software quality standards, and provides a seamless, intuitive user experience. Effective project management guarantees that developmental resources are allocated optimally, potential systemic and operational risks are proactively identified and mitigated, and all core architectural and functional objectives are successfully realised. 
 
-**Core Project Objectives:**
-* **Scope Definition:** Clearly outline the software's boundaries, core features, and anticipated functional capabilities.
-* **Resource Management:** Assign and judiciously manage human, software, and hardware resources to maximise productivity.
-* **Methodology Selection:** Adopt a structured, iterative development approach (Agile) to construct a reliable, scalable, and maintainable platform.
-* **Quality Assurance:** Ensure timely delivery, high-calibre system performance, robust data security, and end-user satisfaction.
+The core project objectives encompass several critical domains. Firstly, Scope Definition requires clearly outlining the boundaries of the software, detailing the core features, and establishing the anticipated functional capabilities to prevent feature creep during the development cycle. Secondly, Resource Management involves the judicious assignment and continuous administration of human, software, and hardware resources to maximise overall productivity and minimise bottlenecks. Thirdly, Methodology Selection mandates the adoption of a structured, iterative development approach, heavily inspired by Agile principles, to construct a reliable, scalable, and maintainable platform that can adapt to changing technical requirements. Finally, Quality Assurance is paramount to ensure the timely delivery of modules, high-calibre system performance under load, robust data security protocols protecting sensitive meeting information, and ultimate end-user satisfaction.
 
-## 3.2 Software Scope
+3.2 Software Scope
 
-The software scope delineates the functional boundaries and paramount deliverables for the SpeakInsights ecosystem:
-* Facilitation, management, and hosting of multi-user video meetings accommodating up to 20 concurrent participants.
-* Low-latency, real-time video and audio streaming driven by WebRTC and the LiveKit Selective Forwarding Unit (SFU).
-* AI-powered, real-time speech-to-text transcription utilising WhisperX, complete with accurate speaker attribution.
-* Post-meeting executive summarisation and automated task extraction driven by local Large Language Models (LLMs) via Ollama.
-* Granular sentiment analysis of conversations to derive actionable organisational insights.
-* Secure, structured storage of meeting archives, transcripts, and AI-generated text embeddings within PostgreSQL (enhanced with `pgvector`).
-* Robust user authentication and Role-Based Access Control (RBAC) distinguishing between administrators, organisers, and standard participants.
-* A responsive, modern User Interface (UI) adopting the "Frosted Aurora" glassmorphism design language, fully accessible across desktops, tablets, and mobile web browsers.
-* Seamless ecosystem integration including calendar exports (.ics format) and real-time chat augmented by Retrieval-Augmented Generation (RAG) AI assistance.
+The software scope delineates the functional boundaries, primary operational capabilities, and paramount deliverables for the entire SpeakInsights ecosystem. By defining these parameters clearly, the project maintains focus and avoids the common pitfall of scope creep. The foundational capability of the system is the facilitation, management, and hosting of multi-user video meetings, computationally designed to accommodate up to twenty concurrent participants without performance degradation. To achieve this, the platform mandates low-latency, real-time video and audio streaming driven by advanced Web Real-Time Communication (WebRTC) protocols and the LiveKit Selective Forwarding Unit architecture.
 
-## 3.3 Resource Management
+Beyond basic communication, the scope heavily emphasises artificial intelligence integration. This includes the implementation of real-time speech-to-text transcription utilising the WhisperX engine, which must be fully equipped with accurate, low-latency speaker attribution. Furthermore, the platform's scope includes post-meeting intelligence gathering, specifically executive summarisation and automated task extraction, which operate entirely on local Large Language Models via the Ollama framework to guarantee data privacy. The intelligence suite is further augmented by granular sentiment analysis of conversations, intended to derive actionable organisational insights regarding participant engagement and meeting tone. 
 
-Efficient resource allocation is fundamentally critical to the project's viability. Resources are categorised as follows:
+From a data management perspective, the scope includes the secure, structured storage of meeting archives, transcripts, and AI-generated text embeddings within a high-performance PostgreSQL database, intentionally enhanced with vector processing capabilities. Access to this ecosystem is governed by robust user authentication and Role-Based Access Control, strictly distinguishing between the privileges of administrators, meeting organisers, and standard participants. All of these technical features are to be presented through a responsive, modern graphical user interface adopting a "Frosted Aurora" glassmorphism design language, which must be fully accessible and visually consistent across desktop environments, tablets, and mobile web browsers. Lastly, the scope covers seamless ecosystem integration, most notably calendar data exports and real-time interactive chat augmented by Retrieval-Augmented Generation capabilities.
 
-### 3.3.1 Human Resources
-Given the lean two-person project team, responsibilities are logically bifurcated:
-* **Full-Stack & Backend Lead:** Oversees the project timeline, backend server logic (FastAPI), database architecture (PostgreSQL/pgvector), and the integration of AI modules (WhisperX, Ollama). Ensures API scalability and data security.
-* **Frontend & UX/UI Lead:** Directs the architectural design of the interface using React and Tailwind CSS, manages state logic (Zustand), and ensures responsive, cross-platform compatibility. Handles frontend integration testing and visual QA.
+3.3 Resource Management
 
-### 3.3.2 Software Resources
-* **Frameworks & Libraries:** React 18, TypeScript, Tailwind CSS, FastAPI, SQLAlchemy, LiveKit SDK, WhisperX, Ollama.
-* **Version Control & Collaboration:** Git, GitHub for repository hosting and CI/CD pipelines.
-* **Supporting Infrastructure:** Docker and Docker Compose for robust container orchestration, Redis for caching and message queuing, Nginx for reverse proxy routing.
+Efficient and strategic resource allocation is fundamentally critical to the viability and ultimate success of the SpeakInsights project. Given the intensive technical requirements of deploying real-time video infrastructure alongside heavy artificial intelligence models, resources must be categorised and managed with extreme precision.
 
-### 3.3.3 Environment Resources
-* **Development Environment:** Visual Studio Code, Node.js environment, Python 3.11+.
-* **Operating Systems:** Cross-platform development targeting Windows, macOS, and Linux sub-systems.
-* **Deployment Infrastructure:** Docker Desktop for local testing; highly available cloud instances with GPU acceleration for hosting AI inference models.
+3.3.1 Human Resources
+Given the inherently lean nature of a two-person academic project team, developmental responsibilities are logically and strictly bifurcated to ensure maximum efficiency and accountability. The Full-Stack and Backend Lead is tasked with overseeing the overarching project timeline, authoring the intricate backend server logic using the FastAPI framework, designing the relational and vector database architecture in PostgreSQL, and spearheading the integration of complex AI modules such as WhisperX and Ollama. This role is fundamentally responsible for ensuring API scalability, system stability, and absolute data security. Conversely, the Frontend and User Experience Lead directs the architectural design of the client-facing application using React and Tailwind CSS. This role manages complex state logic using modern state management libraries, ensures seamless responsive behaviours across a multitude of device form factors, and is strictly responsible for frontend integration testing and visual quality assurance.
 
-## 3.4 Project Development Approach
+3.3.2 Software Resources
+The software resources chosen for this project represent the modern standard for high-performance web applications. The graphical interface relies upon React 18, TypeScript for strictly typed codebase stability, and Tailwind CSS for rapid, scalable styling. The server-side infrastructure is built upon FastAPI and SQLAlchemy to ensure maximum throughput and asynchronous capability, alongside the LiveKit Software Development Kit for WebRTC operations. For machine learning operations, the project leverages WhisperX and Ollama. Version control and collaborative code integration are entirely handled via Git and GitHub, establishing a reliable continuous integration pipeline. Supporting infrastructure includes Docker and Docker Compose for highly robust container orchestration, Redis for high-speed caching and message queuing, and Nginx acting as a reverse proxy for secure traffic routing.
 
-The SpeakInsights project adopts an Agile-inspired, iterative, and incremental development methodology. This approach is highly suited for software requiring complex AI integrations, as it accommodates evolving requirements and continuous testing:
-1. **Requirement Analysis:** Comprehensive gathering of functional and non-functional specifications from academic and system stakeholders.
-2. **Architectural Design:** Prototyping UI/UX wireframes, detailing relational database schemas, and mapping backend microservice communications.
-3. **Iterative Development (Sprints):** Phased implementation of frontend components, backend high-performance APIs, and AI integrations in manageable two-week cycles.
-4. **Continuous Testing:** Integration of unit testing, component functional testing, and user acceptance testing (UAT) at the conclusion of each iteration to immediately rectify defects.
-5. **Deployment & Review:** Containerised deployment via Docker, facilitating rapid user feedback loops and subsequent performance optimisations.
+3.3.3 Environment Resources
+The development environment is standardised across the team using Visual Studio Code, configured with integrated Node.js and Python environments. Because the project targets a broad user base, cross-platform development and testing are mandatory, encompassing Windows, macOS, and Linux sub-systems. Deployment infrastructure is currently partitioned into Docker Desktop for localised, isolated testing and highly available cloud instances, which must occasionally feature GPU acceleration strictly for the hosting and execution of the intensive AI inference models.
 
-## 3.5 Project Scheduling
+3.4 Project Development Approach
 
-Meticulous project scheduling ensures that all development activities for SpeakInsights are planned, executed, and validated within the academic timeframe. 
+The SpeakInsights project explicitly adopts an Agile-inspired, iterative, and incremental development methodology. Traditional linear methodologies like Waterfall are highly unsuitable for software requiring complex, exploratory artificial intelligence integrations. The chosen iterative approach effortlessly accommodates evolving technical requirements, unforeseen model latency issues, and the necessity for continuous testing. 
 
-### 3.5.1 Work Breakdown Structure (WBS)
-To streamline execution, the system architecture is compartmentalised into distinct modules:
-* **Frontend Module:** React.js and TypeScript integration for participant dashboards, meeting rooms, and chat interfaces.
-* **Backend Module:** FastAPI endpoints governing authentication, WebSocket orchestration for real-time chat, and AI service middleware.
-* **Database & Caching Module:** Implementation of PostgreSQL with `pgvector` for embedding storage, and Redis for volatile in-memory operations.
-* **AI Integration Module:** Pipeline construction for WhisperX transcriptions and Ollama-based processing (summarisation and RAG).
-* **DevOps Module:** Dockerisation of the full stack, Nginx configuration, and cross-OS environment parity.
+The approach is divided into distinct, cyclical phases. It commences with a comprehensive Requirement Analysis, gathering all functional and non-functional specifications from academic supervisors and hypothetical system stakeholders. This is followed by an Architectural Design phase dedicated to prototyping user interface wireframes, detailing complex relational database schemas, and mapping the intricate microservice communications required by the backend. The core of the methodology lies in the Iterative Development Sprints, which involve the phased implementation of frontend components, backend high-performance application programming interfaces, and AI integrations in highly manageable two-week developmental cycles. Crucially, Continuous Testing is heavily integrated; unit testing, component functional testing, and user acceptance testing occur at the conclusion of every single iteration to immediately identify and rectify software defects before they compound. Finally, the Deployment and Review phase utilises containerised deployment via Docker to facilitate rapid user feedback loops, allowing the team to apply subsequent performance optimisations in the ensuing sprint.
 
-### 3.5.2 Timeline and Time Allocation
-The project schedule is structured over a 10-week lifecycle, progressively transitioning from theoretical design to robust deployment:
+3.5 Project Scheduling and Work Breakdown Structure
 
-| Development Phase | Duration | Start Week | End Week | Key Deliverables |
-| :--- | :--- | :--- | :--- | :--- |
-| Requirement Analysis | 1–2 weeks | Week 1 | Week 2 | System Requirements Specification (SRS), Feasibility Study. |
-| System Design | 2 weeks | Week 2 | Week 4 | UI Wireframes, Database Schema, API Contracts. |
-| Core Backend Development | 3 weeks | Week 4 | Week 7 | FastAPI implementation, Auth, LiveKit WebRTC bridging. |
-| Core Frontend Development | 3 weeks | Week 4 | Week 7 | React components, State management, Responsive CSS. |
-| Database & AI Integration | 2 weeks | Week 5 | Week 7 | Postgres setup, Ollama & WhisperX pipeline orchestration. |
-| Testing & QA | 2 weeks | Week 7 | Week 9 | Unit, Integration, and System load testing. |
-| Deployment & Feedback | 1 week | Week 10 | Week 10 | Docker compose launch, Bug resolution, Final documentation. |
+Meticulous project scheduling is heavily enforced to ensure that all development, testing, and documentation activities for SpeakInsights are planned, executed, and validated precisely within the strict academic timeframe provided for this final year project. 
 
-*(Table 3.1: Project Time Allocation Table)*
+To systematically streamline the execution of these tasks, the overarching system architecture is completely compartmentalised into distinct developmental modules. The Frontend Module focuses entirely on React and TypeScript integration to construct participant dashboards, live meeting rooms, and interactive chat interfaces. The Backend Module is dedicated to the FastAPI endpoints governing user authentication, sophisticated WebSocket orchestration for real-time data transmission, and the middleware required to interface with external services. The Database and Caching Module surrounds the implementation and optimisation of PostgreSQL alongside vector extensions for embedding storage, coupled with Redis for volatile in-memory operations and pub-sub messaging. The AI Integration Module represents the construction of the pipeline required for automated transcriptions and local processing. Finally, the DevOps Module handles the complete Dockerisation of the full stack, the configuration of the Nginx server, and the assurance of cross-OS environment parity.
 
-## 3.6 Team Organisation & Responsibilities
+The overarching project schedule is structured meticulously over a ten-week lifecycle, progressively transitioning the project from a phase of theoretical architectural design through to a state of robust, containerised deployment. The first phase, Requirement Analysis, spans the initial two weeks and is dedicated to producing the System Requirements Specification and the Feasibility Study. The System Design phase occupies the subsequent two weeks, yielding user interface wireframes, database schemas, and strict API contracts. Core Backend and Frontend Development occur simultaneously between the fourth and seventh weeks, generating the FastAPI implementation, WebRTC bridges, and functioning React components. Database and AI Integration are tightly scheduled between the fifth and seventh weeks to orchestrate the internal machine learning pipelines. The Testing and Quality Assurance phase dominates the eighth and ninth weeks, encompassing rigorous unit, integration, and system-wide load testing. The final week is strictly reserved for Deployment and Feedback, launching the Docker compose environment, finalising bug resolutions, and polishing the academic documentation.
 
-For optimal efficiency, execution is strictly divided into domain-specific leadership roles, establishing clear accountability:
+3.6 Team Organisation and Responsibilities
 
-**1. Team Member 1 – Full-Stack & Backend Lead**
-* Designs and constructs the server-side architecture (FastAPI) and API routing mechanisms.
-* Engineers the database schemas (PostgreSQL) and implements vector storage for AI embeddings (`pgvector`).
-* Integrates machine learning microservices (WhisperX, Ollama, Sentiment Analysis).
-* Manages secure data handling, data sovereignty adherence, and real-time WebSockets integration.
+For optimal execution efficiency, the project is strictly divided into domain-specific leadership roles, thereby establishing clear boundaries of accountability and reducing duplicated effort. 
 
-**2. Team Member 2 – Frontend & UX/UI Lead**
-* Authors the user-facing application utilising React.js, TypeScript, and Tailwind CSS.
-* Translates UI/UX wireframes into functional, accessible "Frosted Aurora" design components.
-* Integrates frontend stores (Zustand) with backend RESTful and WebSocket endpoints.
-* Conducts client-side performance profiling and ensures cross-browser stability.
+The first team member operates as the Full-Stack and Backend Lead. Responsibilities in this domain include designing and constructing the intricate server-side architecture and associated API routing mechanisms. This member engineers the relational database schemas and implements the necessary vector storage logic for artificial intelligence text embeddings. Furthermore, this role is explicitly responsible for the integration of all machine learning microservices, including transcription and sentiment analysis, whilst rigorously managing secure data handling, adherence to data sovereignty principles, and the stability of real-time WebSocket integrations.
 
-**Shared Responsibilities:**
-* **Quality Assurance:** Both members engage in rigorous peer-reviewing, integration testing, and bug-squashing.
-* **Documentation:** Collaborative authoring of the project report, technical manuals, and architectural diagrams.
-* **DevOps:** Joint management of the Dockerised environment and deployment workflows.
+The second team member functions as the Frontend and User Experience Lead. This role centres entirely on authoring the user-facing application, translating theoretical wireframes into highly functional, universally accessible design components conforming to the chosen visual aesthetic. This member seamlessly integrates frontend state management architectures with the backend Representational State Transfer endpoints and WebSocket connections. Additionally, this role conducts rigorous client-side performance profiling to ensure smooth interface rendering and guarantees cross-browser stability across all major web rendering engines.
 
-## 3.7 Risk Management
+Despite this clear division of labour, there remain several critical shared responsibilities. Quality Assurance is a highly collaborative effort, with both members engaging in rigorous peer-reviewing of codebases, joint integration testing of connecting modules, and active defect resolution. Documentation is similarly collaborative, requiring joint authoring of the final project report, user manuals, and technical architectural diagrams. Lastly, DevOps responsibilities are shared to ensure both members are capable of managing the containerised environment and executing deployment workflows independently if necessary.
 
-Identifying, evaluating, and mitigating risk is pivotal, particularly given the computationally intensive nature of AI models and the strict latency requirements of real-time video conferencing.
+3.7 Risk Management
 
-### 3.7.1 Technical Risks
-**Risk:** Failure or unacceptable latency in real-time automated speech recognition (ASR).
-* **Impact:** Severe degradation of user experience and compromised accuracy of post-meeting intelligence.
-* **Mitigation:** Utilise the highly optimised WhisperX framework with appropriate batching. Implement robust fallback mechanisms, such as decoupled asynchronous transcription processing if real-time CPU/GPU load exceeds threshold limits.
+The process of formally identifying, evaluating, and mitigating risk is pivotal to the success of this academic endeavour. This is particularly crucial given the computationally intensive nature of deployed artificial intelligence models and the incredibly strict latency requirements inherent to real-time video conferencing platforms.
 
-**Risk:** Infrastructure bottlenecks during multi-participant (10+ users) video streams.
-* **Impact:** Frame drops, audio desynchronisation, and application crashes.
-* **Mitigation:** Leverage LiveKit as a Selective Forwarding Unit (SFU) rather than a Multipoint Control Unit (MCU), dramatically reducing server-side payload processing.
+Several technical risks present severe threats to the project's viability. The primary technical risk is the potential failure or unacceptable latency occurring within the real-time automated speech recognition engine. The impact of such a failure would result in a severe degradation of the user experience and completely compromise the accuracy of all downstream post-meeting intelligence capabilities. To mitigate this specific risk, the project utilises the highly optimised WhisperX framework paired with carefully calculated processing batching. Furthermore, the architecture implements robust fallback mechanisms; for instance, if real-time processing load exceeds hardware threshold limits, the system safely decouples the transcription process to be handled asynchronously as a post-meeting task. Another major technical risk involves infrastructure bottlenecks erupting during multi-participant video streams featuring more than ten simultaneous users. This would lead to catastrophic frame drops, severe audio desynchronisation, and eventual application crashes. The primary mitigation strategy relies upon leveraging LiveKit strictly as a Selective Forwarding Unit rather than a legacy Multipoint Control Unit, dynamically and dramatically reducing the server-side payload processing requirements.
 
-### 3.7.2 Data Privacy & Security Risks
-**Risk:** Unauthorised interception of sensitive meeting video or transcription data.
-* **Impact:** Critical breach of privacy, erosion of trust, and potential regulatory compliance failures.
-* **Mitigation:** Enforce stringent token-based authentication (JWT). Guarantee that all local AI execution (Ollama/WhisperX) is air-gapped from public cloud analytics, ensuring absolute data sovereignty. Secure data-at-rest within PostgreSQL.
+In the modern digital landscape, data privacy and security risks are equally prominent. The paramount risk is the unauthorised interception or exfiltration of sensitive meeting video streams or corresponding transcription data. Such an event would represent a critical breach of privacy, an immediate erosion of user trust, and potential regulatory compliance failures. Mitigation is strictly enforced through the implementation of stringent token-based authentication protocols. Most importantly, the architectural decision to utilise local artificial intelligence execution guarantees that the system remains entirely air-gapped from public cloud analytics providers, thereby ensuring absolute data sovereignty for the end user. All data-at-rest is strictly secured within the isolated database architecture.
 
-### 3.7.3 Operational & Schedule Risks
-**Risk:** Overestimation of team velocity resulting in missed milestones.
-* **Impact:** Incomplete features at the time of final academic submission.
-* **Mitigation:** Utilise Agile sprints with strict prioritisation of the MVP (Minimum Viable Product). Desirable but non-critical features (like mobile push notifications) are isolated as "Future Scope" to protect the core deliverables.
+Finally, the project must navigate significant operational and scheduling risks. A common academic pitfall is the overestimation of team velocity resulting in critically missed milestones, the impact of which is the presentation of incomplete features at the time of final academic submission. The team mitigates this by utilising Agile development sprints with a ruthless prioritisation of the Minimum Viable Product. Desirable but absolutely non-critical features are deliberately isolated and documented as "Future Scope" to protect the integrity of the core deliverables. Additionally, software dependency failures originating from external third-party application programming interfaces pose a significant operational risk, potentially causing a total loss of core application functionality if external services alter their arbitrary pricing structures or suffer unexpected cloud outages. To thoroughly mitigate this catastrophic risk, the SpeakInsights platform is deliberately engineered from its inception to utilise entirely locally hosted, open-weights artificial intelligence models. This architectural decision explicitly eliminates reliance upon external application programming interfaces, ensuring the platform's long-term operational resilience and stability.
 
-**Risk:** Dependency failures from external third-party APIs.
-* **Impact:** Loss of core application functionality if external services alter pricing or suffer outages.
-* **Mitigation:** SpeakInsights is deliberately engineered to use locally hosted, open-weights AI models (Whisper, Llama via Ollama), effectively eliminating third-party API dependency and ensuring long-term operational resilience.
