@@ -87,6 +87,24 @@ async def _check_ollama() -> str:
         return "disconnected"
 
 
+async def _check_openrouter() -> str:
+    """Check OpenRouter API connectivity."""
+    if not settings.OPENROUTER_API_KEY:
+        return "not_configured"
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                "https://openrouter.ai/api/v1/models",
+                headers={"Authorization": f"Bearer {settings.OPENROUTER_API_KEY}"},
+            )
+            if resp.status_code == 200:
+                return "connected"
+            return f"error (HTTP {resp.status_code})"
+    except Exception as exc:
+        logger.warning("OpenRouter health check failed: %s", exc)
+        return "disconnected"
+
+
 @router.get("/health")
 async def health_check(db: AsyncSession = Depends(get_db)):
     """Health check endpoint — reports status of all backend services."""
@@ -95,6 +113,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     livekit_status = await _check_livekit()
     whisperx_status = await _check_whisperx()
     ollama_status = await _check_ollama()
+    openrouter_status = await _check_openrouter()
 
     services = {
         "db": db_status,
@@ -102,13 +121,19 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         "livekit": livekit_status,
         "whisperx": whisperx_status,
         "ollama": ollama_status,
+        "openrouter": openrouter_status,
     }
 
-    all_ok = all(s == "connected" for s in services.values())
+    # Consider "not_configured" as OK (optional service)
+    all_ok = all(
+        s in ("connected", "not_configured")
+        for s in services.values()
+    )
 
     return {
         "status": "ok" if all_ok else "degraded",
         "version": "3.0.0",
         "services": services,
+        "llm_provider": settings.LLM_PROVIDER,
     }
 

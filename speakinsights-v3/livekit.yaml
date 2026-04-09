@@ -13,7 +13,7 @@ redis:
   address: redis:6379
 
 keys:
-  API7vAR78Nv9tdF: GDvEXa5Af91c7cMBk7nDb6ovLunS9KwZlELkwutfiDv
+  APIg2PNXR9BJHh4: te3n3zSq7GbxEVVe1w1n0AdWNOzkFIxPeJ7xpPfT0O3A
 
 logging:
   level: info

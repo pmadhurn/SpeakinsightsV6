@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Users, Mic, MicOff, Video, VideoOff, Crown, Check, X, Clock } from 'lucide-react';
+import { Users, Mic, MicOff, Video, VideoOff, Crown, Check, X, Clock, UserMinus } from 'lucide-react';
 import { useParticipants, useLocalParticipant } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import Avatar from '@/components/ui/Avatar';
@@ -18,6 +18,7 @@ interface ParticipantListProps {
   lobbyParticipants?: LobbyEntry[];
   onApproveLobby?: (participantId: string) => void;
   onDeclineLobby?: (participantId: string) => void;
+  onKickParticipant?: (identity: string) => void;
   hostIdentity?: string;
 }
 
@@ -26,6 +27,7 @@ export function ParticipantList({
   lobbyParticipants = [],
   onApproveLobby,
   onDeclineLobby,
+  onKickParticipant,
   hostIdentity,
 }: ParticipantListProps) {
   const participants = useParticipants();
@@ -140,6 +142,16 @@ export function ParticipantList({
                     <MicOff size={13} className="text-red-400/60" />
                   ) : (
                     <Mic size={13} className={p.isSpeaking ? 'text-cyan' : 'text-white/30'} />
+                  )}
+                  {/* Kick button (host only, for non-host, non-local participants) */}
+                  {isHost && !isLocal && !isParticipantHost && onKickParticipant && (
+                    <button
+                      onClick={() => onKickParticipant(p.identity)}
+                      className="p-1 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors ml-1"
+                      title={`Remove ${name}`}
+                    >
+                      <UserMinus size={13} />
+                    </button>
                   )}
                 </div>
               </motion.div>

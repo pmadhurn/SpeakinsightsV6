@@ -69,7 +69,7 @@ export function VideoTile({ participant, isActive = false, size = 'medium' }: Vi
           autoPlay
           playsInline
           muted
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain bg-black/40"
         />
       ) : (
         /* Avatar fallback when camera is off */

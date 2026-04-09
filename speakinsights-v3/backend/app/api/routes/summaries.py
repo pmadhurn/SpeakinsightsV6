@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.config import settings
-from app.core.ollama_client import ollama_client
+from app.core.llm_provider import llm_provider
 from app.core.sentiment_service import sentiment_service
 from app.models.meeting import Meeting
 from app.models.summary import Summary
@@ -85,7 +85,7 @@ async def generate_summary(
 
     # --- Step 1: Summarise ---
     try:
-        summary_data = await ollama_client.summarize_transcript(transcript_text, meeting.title)
+        summary_data = await llm_provider.summarize_transcript(transcript_text, meeting.title)
     except Exception as exc:
         logger.error("Summary generation failed: %s", exc)
         raise HTTPException(status_code=502, detail=f"Ollama summarization failed: {exc}")
@@ -133,7 +133,7 @@ async def generate_summary(
 
     # --- Step 2: Extract tasks ---
     try:
-        tasks_data = await ollama_client.extract_tasks(transcript_text)
+        tasks_data = await llm_provider.extract_tasks(transcript_text)
         logger.info("Raw tasks data: %s", tasks_data)
         for task_item in tasks_data:
             due_date = None
@@ -172,7 +172,7 @@ async def generate_summary(
 
     # --- Step 3: Deep sentiment ---
     try:
-        sentiment_data = await ollama_client.analyze_sentiment(
+        sentiment_data = await llm_provider.analyze_sentiment(
             transcript_text, sorted(speaker_names)
         )
         sentiment_summary = Summary(
@@ -212,7 +212,7 @@ async def generate_summary(
 
         if chunks:
             chunk_texts = [c["text"] for c in chunks]
-            embeddings = await ollama_client.generate_embeddings_batch(chunk_texts)
+            embeddings = await llm_provider.generate_embeddings_batch(chunk_texts)
 
             for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                 db.add(TranscriptEmbedding(

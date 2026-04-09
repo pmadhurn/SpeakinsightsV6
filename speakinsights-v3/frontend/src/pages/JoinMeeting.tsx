@@ -324,7 +324,7 @@ export default function JoinMeeting() {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
+    <div className="min-h-screen pt-32 pb-16 flex items-center justify-center">
       <div className="w-full max-w-md px-4">
         {step !== 'loading' && step !== 'enter-name' ? null : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>

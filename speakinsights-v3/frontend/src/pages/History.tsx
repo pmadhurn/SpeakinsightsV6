@@ -195,7 +195,15 @@ export default function History() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i * 0.05, 0.5) }}
                 >
-                  <MeetingCard meeting={meeting} />
+                  <MeetingCard
+                    meeting={meeting}
+                    onDeleted={(id) => setAllMeetings((prev) => prev.filter((m) => m.id !== id))}
+                    onUpdated={(updated) =>
+                      setAllMeetings((prev) =>
+                        prev.map((m) => (m.id === updated.id ? updated : m))
+                      )
+                    }
+                  />
                 </motion.div>
               ))}
 

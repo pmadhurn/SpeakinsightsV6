@@ -13,6 +13,7 @@ import {
   Clock,
   Loader2,
   CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
 import GlassCard from '@/components/ui/GlassCard';
 import GlassButton from '@/components/ui/GlassButton';
@@ -68,6 +69,7 @@ export default function MeetingReview() {
   const [activeTab, setActiveTab] = useState<ReviewTab>('summary');
   const [videoTime, setVideoTime] = useState(0);
   const [processingSteps, setProcessingSteps] = useState<string[]>([]);
+  const [retranscribing, setRetranscribing] = useState(false);
 
   // Fetch all data
   const fetchData = useCallback(async () => {
@@ -212,6 +214,24 @@ export default function MeetingReview() {
     URL.revokeObjectURL(url);
   }, [segments, id]);
 
+  // Handle re-transcribe
+  const handleRetranscribe = useCallback(async () => {
+    if (!id) return;
+    try {
+      setRetranscribing(true);
+      glassToast.info('Starting re-transcription...');
+      await meetingsApi.retranscribe(id);
+      glassToast.success('Re-transcription started! This may take a few minutes.');
+      // Reload meeting data to show processing state
+      fetchData();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to start re-transcription';
+      glassToast.error(msg);
+    } finally {
+      setRetranscribing(false);
+    }
+  }, [id, fetchData]);
+
   // Handle segment click -> jump video
   const handleSegmentClick = useCallback((startTime: number) => {
     setVideoTime(startTime);
@@ -235,7 +255,7 @@ export default function MeetingReview() {
   const meetingDuration = meeting?.duration || 0;
 
   return (
-    <div className="min-h-screen pt-20 pb-16">
+    <div className="min-h-screen pt-32 pb-16">
       <div className="max-w-[1400px] mx-auto px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           {/* ─── Top info bar ─── */}
@@ -291,6 +311,18 @@ export default function MeetingReview() {
               <GlassButton variant="ghost" size="sm" icon={FileText} onClick={handleDownloadTranscript} disabled={segments.length === 0}>
                 Transcript
               </GlassButton>
+              {meeting?.has_recording && (
+                <GlassButton
+                  variant="ghost"
+                  size="sm"
+                  icon={retranscribing ? Loader2 : RefreshCw}
+                  onClick={handleRetranscribe}
+                  disabled={retranscribing || isProcessing}
+                  className={retranscribing ? '[&_svg]:animate-spin' : ''}
+                >
+                  Re-transcribe
+                </GlassButton>
+              )}
             </div>
           </div>
 
@@ -407,7 +439,7 @@ export default function MeetingReview() {
             </div>
 
             {/* RIGHT SIDE (35%) — Transcript */}
-            <div className="flex-[35] min-w-0 sticky top-24" style={{ maxHeight: 'calc(100vh - 120px)' }}>
+            <div className="flex-[35] min-w-0 sticky top-28" style={{ maxHeight: 'calc(100vh - 140px)' }}>
               <div className="flex flex-col h-full">
                 {segments.length > 0 && (
                   <div className="flex justify-end mb-2">

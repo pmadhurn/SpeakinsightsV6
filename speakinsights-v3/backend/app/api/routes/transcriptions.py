@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
 from app.config import settings
 from app.core.sentiment_service import sentiment_service
-from app.core.whisperx_client import whisperx_client
+from app.core.whisperx_client import whisperx_client, WhisperXUnavailableError
 from app.models.meeting import Meeting
 from app.models.participant import Participant
 from app.models.transcription import TranscriptionSegment
@@ -29,6 +29,9 @@ from app.schemas.transcription import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Simple counter for observability (visible in /health or future Prometheus)
+_dropped_chunks: int = 0
 
 router = APIRouter()
 
@@ -121,9 +124,27 @@ async def receive_audio_chunk(
             language=meeting.language or "auto",
             timestamp_offset=timestamp_offset,
         )
+    except WhisperXUnavailableError:
+        # Circuit breaker is open — WhisperX is known-down.
+        # Don't log at warning level; this is expected while the circuit is open.
+        global _dropped_chunks
+        _dropped_chunks += 1
+        logger.debug(
+            "WhisperX circuit open — dropped chunk for meeting %s (total dropped: %d)",
+            meeting_id, _dropped_chunks,
+        )
+        return {"segments": [], "count": 0, "status": "whisperx_unavailable"}
     except Exception as exc:
-        logger.error("WhisperX transcription failed: %s", exc)
-        raise HTTPException(status_code=502, detail=f"Transcription service error: {exc}")
+        _dropped_chunks += 1
+        # Transient error — WhisperX may be loading a model or temporarily
+        # overloaded. Return empty so the frontend keeps sending future
+        # chunks; the post-meeting full-transcription will recover the data.
+        logger.warning(
+            "WhisperX transcription failed for meeting %s "
+            "(dropped chunk #%d, will retry next interval): %s",
+            meeting_id, _dropped_chunks, exc,
+        )
+        return {"segments": [], "count": 0, "status": "transient_error"}
 
     # Find participant (optional — may not exist yet)
     participant_result = await db.execute(
@@ -173,6 +194,7 @@ async def receive_audio_chunk(
     return {
         "segments": [TranscriptSegmentResponse.model_validate(s) for s in saved_segments],
         "count": len(saved_segments),
+        "status": "ok",
     }
 
 

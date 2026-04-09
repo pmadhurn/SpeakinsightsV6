@@ -5,7 +5,10 @@ Wraps WhisperX model loading and inference with standardized output format.
 
 import logging
 import os
+import signal
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Any, Optional
 
 import numpy as np
@@ -13,6 +16,10 @@ import torch
 import whisperx
 
 logger = logging.getLogger(__name__)
+
+# Timeout for loading alignment models (seconds).
+# Prevents the service from hanging when HuggingFace downloads are slow.
+_ALIGN_MODEL_LOAD_TIMEOUT = 30
 
 
 # Supported languages (WhisperX / Whisper multilingual)
@@ -184,20 +191,48 @@ class WhisperXTranscriber:
         return self._model_loaded and self.model is not None
 
     def _get_alignment_model(self, language: str):
-        """Get or load alignment model for a language (cached)."""
-        if language not in self._alignment_models:
-            logger.info(f"Loading alignment model for language: {language}")
-            try:
-                model_a, metadata = whisperx.load_align_model(
-                    language_code=language, device=self.device
-                )
-                self._alignment_models[language] = (model_a, metadata)
-            except Exception as e:
-                logger.warning(
-                    f"Could not load alignment model for '{language}': {e}. "
-                    "Word-level timestamps will not be available."
-                )
+        """Get or load alignment model for a language (cached).
+
+        Uses a thread-pool with a timeout to prevent the service from
+        hanging indefinitely when downloading a model from HuggingFace.
+        Failed languages are cached so we don't retry on every chunk.
+        """
+        # Already loaded successfully?
+        if language in self._alignment_models:
+            cached = self._alignment_models[language]
+            if cached is None:
+                # Previously failed — skip
                 return None, None
+            return cached
+
+        logger.info(f"Loading alignment model for language: {language}")
+        try:
+            # Run the potentially-blocking download in a thread with timeout
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(
+                    whisperx.load_align_model,
+                    language_code=language,
+                    device=self.device,
+                )
+                model_a, metadata = future.result(timeout=_ALIGN_MODEL_LOAD_TIMEOUT)
+
+            self._alignment_models[language] = (model_a, metadata)
+            logger.info(f"Alignment model for '{language}' loaded successfully.")
+        except FuturesTimeoutError:
+            logger.warning(
+                f"Timed out loading alignment model for '{language}' "
+                f"(>{_ALIGN_MODEL_LOAD_TIMEOUT}s). Skipping alignment."
+            )
+            self._alignment_models[language] = None  # cache failure
+            return None, None
+        except Exception as e:
+            logger.warning(
+                f"Could not load alignment model for '{language}': {e}. "
+                "Word-level timestamps will not be available."
+            )
+            self._alignment_models[language] = None  # cache failure
+            return None, None
+
         return self._alignment_models[language]
 
     def transcribe(

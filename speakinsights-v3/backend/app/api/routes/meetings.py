@@ -165,7 +165,7 @@ async def create_meeting(
 async def list_meetings(
     status: str | None = Query(None, description="Filter by status"),
     search: str | None = Query(None, description="Search by title"),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
@@ -404,6 +404,30 @@ async def decline_participant(
     return {"status": "declined", "participant_id": str(participant_id)}
 
 
+@router.post("/{meeting_id}/kick/{participant_identity}")
+async def kick_participant(
+    meeting_id: uuid.UUID,
+    participant_identity: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Host kicks a participant from the active LiveKit room."""
+    result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
+    meeting = result.scalar_one_or_none()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    room_name = meeting.livekit_room_name
+    if not room_name:
+        raise HTTPException(status_code=400, detail="Meeting has no active room")
+
+    try:
+        await livekit_service.remove_participant(room_name, participant_identity)
+        logger.info("Kicked participant '%s' from room %s", participant_identity, room_name)
+        return {"status": "kicked", "identity": participant_identity}
+    except Exception as exc:
+        logger.error("Failed to kick participant '%s': %s", participant_identity, exc)
+        raise HTTPException(status_code=500, detail=f"Failed to kick participant: {exc}")
+
 @router.post("/{meeting_id}/start")
 async def start_meeting(
     meeting_id: uuid.UUID,
@@ -554,6 +578,86 @@ async def end_meeting(
     }
 
 
+@router.post("/{meeting_id}/retranscribe")
+async def retranscribe_meeting(
+    meeting_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    """Re-transcribe a meeting using stored recordings.
+
+    Clears existing transcription segments, summaries, tasks, embeddings,
+    and calendar exports, then re-runs the full post-processing pipeline
+    on the recordings that are still on disk.
+    """
+    result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
+    meeting = result.scalar_one_or_none()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    if meeting.status == "active":
+        raise HTTPException(status_code=400, detail="Cannot re-transcribe an active meeting")
+
+    # Check that recordings exist on disk
+    disk_files = recording_manager.list_meeting_recordings(str(meeting_id))
+    if not disk_files:
+        raise HTTPException(
+            status_code=400,
+            detail="No recordings found on disk for this meeting",
+        )
+
+    # Set status to processing
+    meeting.status = "processing"
+    await db.flush()
+
+    # Clear existing post-processing artefacts so the pipeline creates fresh ones
+    from app.models.transcription import TranscriptionSegment
+    from app.models.summary import Summary
+    from app.models.task import Task
+    from app.models.embedding import TranscriptEmbedding
+    from app.models.calendar_export import CalendarExport
+
+    await db.execute(
+        delete(TranscriptionSegment).where(TranscriptionSegment.meeting_id == meeting_id)
+    )
+    await db.execute(
+        delete(Summary).where(Summary.meeting_id == meeting_id)
+    )
+    await db.execute(
+        delete(Task).where(Task.meeting_id == meeting_id)
+    )
+    await db.execute(
+        delete(TranscriptEmbedding).where(TranscriptEmbedding.meeting_id == meeting_id)
+    )
+    await db.execute(
+        delete(CalendarExport).where(CalendarExport.meeting_id == meeting_id)
+    )
+
+    # Reset individual recording transcription statuses
+    ind_result = await db.execute(
+        select(IndividualRecording).where(IndividualRecording.meeting_id == meeting_id)
+    )
+    for rec in ind_result.scalars().all():
+        rec.transcription_status = "pending"
+
+    await db.flush()
+
+    logger.info(
+        "Cleared existing transcription data for meeting %s, starting re-transcription",
+        meeting_id,
+    )
+
+    # Trigger post-processing in background (no egress IDs — recordings are already on disk)
+    background_tasks.add_task(post_processing.process_meeting, str(meeting_id))
+
+    return {
+        "status": "processing",
+        "meeting_id": str(meeting_id),
+        "message": "Re-transcription started. Existing data has been cleared.",
+        "recording_files": len(disk_files),
+    }
+
+
 @router.get("/{meeting_id}/participants", response_model=list[ParticipantResponse])
 async def list_participants(
     meeting_id: uuid.UUID,
@@ -601,3 +705,28 @@ async def delete_meeting(
     logger.info("Deleted meeting %s", meeting_id)
     return None
 
+
+@router.post("/{meeting_id}/stop-processing")
+async def stop_processing(
+    meeting_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Force a meeting out of 'processing' status back to 'completed'.
+
+    Use this when post-processing is stuck or the user wants to skip it.
+    """
+    result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
+    meeting = result.scalar_one_or_none()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    if meeting.status != "processing":
+        raise HTTPException(status_code=400, detail="Meeting is not currently processing")
+
+    meeting.status = "completed"
+    if not meeting.ended_at:
+        meeting.ended_at = datetime.now(timezone.utc)
+    await db.flush()
+
+    logger.info("Force-stopped processing for meeting %s", meeting_id)
+    return {"status": "completed", "meeting_id": str(meeting_id)}

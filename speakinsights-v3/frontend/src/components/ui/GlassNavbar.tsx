@@ -25,12 +25,12 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${scrolled ? 'py-4' : 'py-8'}`}>
+    <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${scrolled ? 'py-2' : 'py-3'}`}>
       <div className="max-w-7xl mx-auto px-6">
         
         {/* Main Floating Nav Pill */}
-        <div className={`relative flex items-center justify-between h-16 px-8 rounded-full border transition-all duration-500 z-50 ${
-          scrolled ? 'bg-[#0a0c10]/80 backdrop-blur-2xl border-white/10 shadow-2xl scale-[0.98]' : 'bg-white/[0.03] backdrop-blur-md border-white/5'
+        <div className={`relative flex items-center justify-between h-14 px-8 rounded-full border transition-all duration-500 z-50 ${
+          scrolled ? 'bg-white/[0.03] backdrop-blur-2xl border-white/10 shadow-2xl scale-[0.98]' : 'bg-white/[0.03] backdrop-blur-md border-white/5'
         }`}>
           
           {/* Logo Section */}
@@ -91,7 +91,7 @@ export default function Navbar() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="absolute top-24 left-6 right-6 md:hidden overflow-hidden rounded-2xl bg-[#0a0c10]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-4 flex flex-col gap-1 z-40"
+              className="absolute top-20 left-6 right-6 md:hidden overflow-hidden rounded-2xl bg-[#0a0c10]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-4 flex flex-col gap-1 z-40"
             >
               {navLinks.map(({ to, label, icon: IconComponent }) => {
                 const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);

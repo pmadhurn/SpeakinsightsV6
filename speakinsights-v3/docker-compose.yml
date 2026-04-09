@@ -48,7 +48,7 @@ services:
       redis:
         condition: service_healthy
       whisperx:
-        condition: service_healthy
+        condition: service_started
       livekit-server:
         condition: service_started
     environment:
@@ -66,6 +66,12 @@ services:
       # Ollama — on Mac, connects to host machine (native Ollama)
       - OLLAMA_URL=${OLLAMA_URL:-http://host.docker.internal:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:3b}
+      # LLM Provider
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      # OpenRouter (cloud LLM — optional)
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-minimax/minimax-m2.5:free}
+      - OPENROUTER_REASONING=${OPENROUTER_REASONING:-true}
       # Storage
       - STORAGE_PATH=/app/storage
       # CORS — allow all origins for Cloudflare tunnel support
@@ -229,8 +235,8 @@ services:
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/health')" ]
-      interval: 15s
-      timeout: 10s
+      interval: 30s
+      timeout: 30s
       retries: 10
       start_period: 120s
     deploy:

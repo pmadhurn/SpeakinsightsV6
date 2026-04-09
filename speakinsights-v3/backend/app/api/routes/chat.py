@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.config import settings
-from app.core.ollama_client import ollama_client
+from app.core.llm_provider import llm_provider
 from app.models.chat import ChatMessage
 from app.models.embedding import TranscriptEmbedding
 from app.schemas.chat import (
@@ -43,7 +43,7 @@ async def _do_rag_search(
 ) -> list[dict]:
     """Embed the question and search pgvector for similar transcript chunks."""
     # Generate query embedding
-    query_embedding = await ollama_client.generate_embedding(question)
+    query_embedding = await llm_provider.generate_embedding(question)
 
     if not query_embedding:
         return []
@@ -148,7 +148,7 @@ async def send_chat_message(
     as context for the LLM.
     """
     session_id = data.session_id or str(uuid.uuid4())
-    model = data.model or settings.OLLAMA_MODEL
+    model = data.model or llm_provider.default_model
     context_sources = None
 
     # Get chat history for this session (last 10 messages)
@@ -170,7 +170,7 @@ async def send_chat_message(
 
     # Call Ollama
     try:
-        result = await ollama_client.chat(messages, model=model)
+        result = await llm_provider.chat(messages, model=model)
     except Exception as exc:
         logger.error("Ollama chat failed: %s", exc)
         raise HTTPException(status_code=502, detail=f"LLM service error: {exc}")
@@ -225,7 +225,7 @@ async def stream_chat_message(
     Same logic as POST / but returns tokens as they arrive from Ollama.
     """
     session_id = data.session_id or str(uuid.uuid4())
-    model = data.model or settings.OLLAMA_MODEL
+    model = data.model or llm_provider.default_model
     context_sources = None
 
     # Get chat history
@@ -267,7 +267,7 @@ async def stream_chat_message(
             yield f"data: {json.dumps({'type': 'context', 'sources': context_sources})}\n\n"
 
         try:
-            async for token in ollama_client.chat_stream(messages, model=model):
+            async for token in llm_provider.chat_stream(messages, model=model):
                 full_response.append(token)
                 yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
         except Exception as exc:
