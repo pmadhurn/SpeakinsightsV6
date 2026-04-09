@@ -106,3 +106,5 @@ services:
 volumes:
   ollama-data:
     name: speakinsights-ollama-data
+
+
