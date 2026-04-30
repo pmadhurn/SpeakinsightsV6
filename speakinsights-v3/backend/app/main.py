@@ -41,6 +41,7 @@ from app.api.routes import (
     chat_router,
     models_router,
     llm_settings_router,
+    upload_router,
 )
 from app.websockets.router import ws_router
 
@@ -253,6 +254,7 @@ app.include_router(calendar_router,        prefix="/api/calendar",       tags=["
 app.include_router(chat_router,            prefix="/api/chat",           tags=["AI Chat"])
 app.include_router(models_router,          prefix="/api/models",         tags=["Ollama Models"])
 app.include_router(llm_settings_router,    prefix="/api/llm",            tags=["LLM Settings"])
+app.include_router(upload_router,           prefix="/api/upload",         tags=["Upload"])
 
 # ---------------------------------------------------------------------------
 # WebSocket Routes (/ws/lobby, /ws/transcript, /ws/meeting)

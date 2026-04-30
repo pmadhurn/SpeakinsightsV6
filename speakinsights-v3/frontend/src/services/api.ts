@@ -227,4 +227,20 @@ export const llmSettings = {
     api.get('/llm/openrouter/models').then((r) => r.data),
 };
 
+// ─── Upload ───
+export const upload = {
+  meeting: (file: File, title: string, hostName?: string, language?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', title);
+    if (hostName) formData.append('host_name', hostName);
+    if (language) formData.append('language', language);
+
+    return api.post('/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,  // 2 min for large uploads
+    }).then((r) => r.data);
+  },
+};
+
 export default api;

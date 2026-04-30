@@ -216,6 +216,10 @@ async def transcribe(
 async def transcribe_file(
     file: UploadFile = File(..., description="Full audio file to transcribe"),
     language: str = Form(default="auto", description="Language code or 'auto'"),
+    diarize: bool = Form(
+        default=False,
+        description="Whether to perform speaker diarization (requires HF_TOKEN)",
+    ),
 ):
     """
     Transcribe a complete audio file with word-level timestamps.
@@ -223,6 +227,7 @@ async def transcribe_file(
     Optimized for larger files (full meeting individual audio tracks).
     Uses higher batch_size for better throughput.
     No timestamp_offset — starts from 0.
+    Optionally performs speaker diarization to identify different speakers.
     """
     if not transcriber.is_loaded:
         raise HTTPException(
@@ -258,6 +263,10 @@ async def transcribe_file(
         # Align for word-level timestamps
         aligned = transcriber.align(result, audio, detected_language)
 
+        # Optionally run speaker diarization
+        if diarize:
+            aligned = transcriber.diarize(audio, aligned)
+
         # Format output (no timestamp offset)
         output = transcriber.format_result(
             aligned,
@@ -268,7 +277,7 @@ async def transcribe_file(
         elapsed = time.time() - start_time
         logger.info(
             f"Full file transcription complete: {len(output['segments'])} segments, "
-            f"language={detected_language}, time={elapsed:.2f}s"
+            f"language={detected_language}, diarize={diarize}, time={elapsed:.2f}s"
         )
 
         return output

@@ -372,14 +372,14 @@ class PostProcessingPipeline:
 
                 if extracted_audio:
                     logger.info(
-                        "Composite audio extracted: %s — sending to WhisperX",
+                        "Composite audio extracted: %s — sending to WhisperX with diarization",
                         extracted_audio,
                     )
 
-                    # Determine speaker name from the first participant, or use meeting host
-                    speaker_label = "Speaker"
+                    # Determine fallback speaker name from the first participant, or use meeting host
+                    fallback_speaker = "Speaker"
                     if individual_recordings:
-                        speaker_label = individual_recordings[0].speaker_name or "Speaker"
+                        fallback_speaker = individual_recordings[0].speaker_name or "Speaker"
                     else:
                         # Try to get the host name from the meeting
                         meeting_result = await db.execute(
@@ -387,11 +387,14 @@ class PostProcessingPipeline:
                         )
                         meeting_obj = meeting_result.scalar_one_or_none()
                         if meeting_obj and meeting_obj.host_name:
-                            speaker_label = meeting_obj.host_name
+                            fallback_speaker = meeting_obj.host_name
 
                     try:
+                        # Request diarization to identify different speakers
                         segments = await whisperx_client.transcribe_file(
-                            extracted_audio, language=settings.DEFAULT_LANGUAGE
+                            extracted_audio,
+                            language=settings.DEFAULT_LANGUAGE,
+                            diarize=True,
                         )
 
                         for seg in segments:
@@ -399,12 +402,16 @@ class PostProcessingPipeline:
                             if not text:
                                 continue
 
+                            # Use diarization speaker label if available,
+                            # otherwise fall back to meeting speaker name
+                            speaker = seg.get("speaker") or fallback_speaker
+
                             sentiment = sentiment_service.analyze_segment(text)
 
                             db_segment = TranscriptionSegment(
                                 id=uuid.uuid4(),
                                 meeting_id=uuid.UUID(meeting_id),
-                                speaker_name=speaker_label,
+                                speaker_name=speaker,
                                 text=text,
                                 language=seg.get("language"),
                                 start_time=seg.get("start", 0.0),
@@ -419,7 +426,7 @@ class PostProcessingPipeline:
                             db.add(db_segment)
 
                             all_segments.append({
-                                "speaker": speaker_label,
+                                "speaker": speaker,
                                 "text": text,
                                 "start": seg.get("start", 0.0),
                                 "end": seg.get("end", 0.0),

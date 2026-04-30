@@ -323,6 +323,63 @@ class WhisperXTranscriber:
             logger.warning(f"Alignment failed: {e}. Returning unaligned result.")
             return result
 
+    def diarize(
+        self,
+        audio: np.ndarray,
+        result: dict,
+    ) -> dict:
+        """
+        Perform speaker diarization and assign speaker labels to segments.
+
+        Requires HF_TOKEN environment variable for pyannote.audio models.
+
+        Args:
+            audio: Loaded audio numpy array
+            result: Aligned (or unaligned) transcription result with segments
+
+        Returns:
+            Result dict with speaker labels assigned to each segment.
+        """
+        hf_token = os.environ.get("HF_TOKEN", "")
+        if not hf_token:
+            logger.warning(
+                "HF_TOKEN not set — speaker diarization unavailable. "
+                "Set HF_TOKEN in your .env file to enable diarization."
+            )
+            return result
+
+        try:
+            logger.info("Running speaker diarization via pyannote.audio...")
+            start_time = time.time()
+
+            diarize_model = whisperx.DiarizationPipeline(
+                use_auth_token=hf_token,
+                device=self.device,
+            )
+            diarize_segments = diarize_model(audio)
+
+            # Assign speaker labels to transcript segments
+            diarized = whisperx.assign_word_speakers(diarize_segments, result)
+
+            elapsed = time.time() - start_time
+
+            # Count unique speakers
+            speakers = set()
+            for seg in diarized.get("segments", []):
+                if seg.get("speaker"):
+                    speakers.add(seg["speaker"])
+
+            logger.info(
+                f"Diarization complete in {elapsed:.2f}s — "
+                f"{len(speakers)} speaker(s) detected: {sorted(speakers)}"
+            )
+            return diarized
+
+        except Exception as e:
+            logger.error(f"Diarization failed: {e}", exc_info=True)
+            logger.warning("Falling back to result without speaker labels.")
+            return result
+
     def format_result(
         self,
         raw_result: dict,
@@ -370,6 +427,7 @@ class WhisperXTranscriber:
                 "start": start,
                 "end": end,
                 "text": text,
+                "speaker": seg.get("speaker"),  # From diarization
                 "confidence": round(confidence, 4) if confidence is not None else None,
                 "words": words,
                 "language": detected_language,

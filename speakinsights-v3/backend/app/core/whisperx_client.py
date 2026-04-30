@@ -70,6 +70,7 @@ class WhisperXClient:
                 "start": round((seg.get("start", 0.0) or 0.0), 3),
                 "end": round((seg.get("end", 0.0) or 0.0), 3),
                 "text": seg.get("text", "").strip(),
+                "speaker": seg.get("speaker"),  # From diarization (if available)
                 "confidence": round(seg.get("score", seg.get("confidence", 0.0)) or 0.0, 4),
                 "words": words,
                 "language": seg.get("language", None),
@@ -211,6 +212,7 @@ class WhisperXClient:
         self,
         file_path: str,
         language: str = "auto",
+        diarize: bool = False,
     ) -> list[dict[str, Any]]:
         """Send a complete audio file to WhisperX for full transcription.
 
@@ -220,6 +222,7 @@ class WhisperXClient:
         Args:
             file_path: Path to the audio file on disk.
             language: Language code or 'auto'.
+            diarize: Whether to perform speaker diarization.
 
         Returns:
             List of standardised transcript segments.
@@ -253,6 +256,8 @@ class WhisperXClient:
                         data: dict[str, Any] = {}
                         if lang:
                             data["language"] = lang
+                        if diarize:
+                            data["diarize"] = "true"
 
                         response = await client.post(
                             f"{self._base_url}/transcribe-file",
@@ -265,7 +270,7 @@ class WhisperXClient:
                     segments = result.get("segments", result if isinstance(result, list) else [])
                     parsed = self._parse_segments(segments)
                     logger.info(
-                        "Transcribed file %s: %d segments", path.name, len(parsed)
+                        "Transcribed file %s: %d segments (diarize=%s)", path.name, len(parsed), diarize
                     )
                     return parsed
                 except (httpx.ReadTimeout, httpx.ConnectError, httpx.ConnectTimeout) as retry_exc:
