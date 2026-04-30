@@ -94,6 +94,10 @@ class RecordingManager:
     def ensure_meeting_directory(self, meeting_id: str) -> str:
         """Create the recordings directory for a meeting if it doesn't exist.
 
+        Sets 777 permissions so that the LiveKit egress container
+        (which runs as a non-root user, UID 1001) can write recording
+        files into this directory.
+
         Args:
             meeting_id: Meeting UUID.
 
@@ -102,6 +106,12 @@ class RecordingManager:
         """
         meeting_dir = Path(self._storage_path) / "recordings" / meeting_id
         meeting_dir.mkdir(parents=True, exist_ok=True)
+        # Egress container runs as uid=1001 (egress), so the directory
+        # must be world-writable for it to save recording files.
+        try:
+            meeting_dir.chmod(0o777)
+        except OSError as exc:
+            logger.warning("Could not chmod %s: %s", meeting_dir, exc)
         logger.debug("Ensured directory: %s", meeting_dir)
         return str(meeting_dir)
 
