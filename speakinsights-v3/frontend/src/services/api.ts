@@ -76,6 +76,9 @@ export const transcriptions = {
       `/transcriptions/${meetingId}/search`,
       { params: { q: query } }
     ).then((r) => r.data.results || []),
+
+  renameSpeakers: (meetingId: string, renames: Record<string, string>) =>
+    api.patch(`/transcriptions/${meetingId}/speakers/rename`, { renames }).then((r) => r.data),
 };
 
 // ─── Summaries ───

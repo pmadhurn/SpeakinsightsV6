@@ -457,6 +457,16 @@ export default function MeetingReview() {
                   currentVideoTime={videoTime}
                   onSegmentClick={handleSegmentClick}
                   meetingId={id || ''}
+                  onSpeakersRenamed={async () => {
+                    if (!id) return;
+                    try {
+                      const updated = await transcriptions.getTranscript(id);
+                      setSegments(updated);
+                      glassToast.success('Speaker renamed successfully!');
+                    } catch {
+                      glassToast.error('Failed to refresh transcript');
+                    }
+                  }}
                 />
               </div>
             </div>

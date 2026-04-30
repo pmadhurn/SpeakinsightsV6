@@ -385,3 +385,63 @@ async def get_speaker_stats(
 
     return {"meeting_id": str(meeting_id), "speakers": speakers}
 
+
+# ---------------------------------------------------------------------------
+# PATCH /{meeting_id}/speakers/rename — bulk rename speakers
+# ---------------------------------------------------------------------------
+
+@router.patch("/{meeting_id}/speakers/rename")
+async def rename_speakers(
+    meeting_id: uuid.UUID,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+):
+    """Bulk rename speaker labels in transcription segments.
+
+    Body: { "renames": { "SPEAKER_00": "Alice", "SPEAKER_02": "Bob" } }
+
+    Updates all segments matching the old speaker_name with the new name.
+    This allows users to assign human-readable names after diarization.
+    """
+    meeting_result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
+    if not meeting_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    renames: dict = body.get("renames", {})
+    if not renames:
+        raise HTTPException(status_code=400, detail="No renames provided")
+
+    updated_total = 0
+
+    for old_name, new_name in renames.items():
+        new_name = str(new_name).strip()
+        if not new_name or new_name == old_name:
+            continue
+
+        # Update all segments with the old speaker name
+        from sqlalchemy import update
+
+        stmt = (
+            update(TranscriptionSegment)
+            .where(
+                TranscriptionSegment.meeting_id == meeting_id,
+                TranscriptionSegment.speaker_name == old_name,
+            )
+            .values(speaker_name=new_name)
+        )
+        result = await db.execute(stmt)
+        count = result.rowcount
+        updated_total += count
+        logger.info(
+            "Renamed speaker '%s' → '%s' in %d segments for meeting %s",
+            old_name, new_name, count, meeting_id,
+        )
+
+    await db.commit()
+
+    return {
+        "meeting_id": str(meeting_id),
+        "updated_segments": updated_total,
+        "renames": renames,
+    }
+

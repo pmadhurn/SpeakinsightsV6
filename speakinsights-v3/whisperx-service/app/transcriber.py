@@ -352,8 +352,10 @@ class WhisperXTranscriber:
             logger.info("Running speaker diarization via pyannote.audio...")
             start_time = time.time()
 
-            diarize_model = whisperx.DiarizationPipeline(
-                use_auth_token=hf_token,
+            from whisperx.diarize import DiarizationPipeline
+
+            diarize_model = DiarizationPipeline(
+                token=hf_token,
                 device=self.device,
             )
             diarize_segments = diarize_model(audio)
