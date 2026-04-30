@@ -215,6 +215,8 @@ services:
     build:
       context: ./whisperx-service
       dockerfile: Dockerfile
+      args:
+        WHISPERX_MODEL: ${WHISPERX_MODEL:-small}
     container_name: speakinsights-whisperx
     ports:
       - "9000:9000"

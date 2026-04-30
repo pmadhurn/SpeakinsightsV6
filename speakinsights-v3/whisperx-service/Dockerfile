@@ -46,8 +46,21 @@ RUN pip install --no-cache-dir --no-deps \
     pyannote-metrics \
     pyannote-pipeline
 
+# Copy scripts first for pre-download step
+COPY scripts/ ./scripts/
+
+# Pre-download the default model during build so the image has it baked in.
+# This makes first startup instant instead of waiting for a ~1GB download.
+# The model is cached in /root/.cache/huggingface/ which is also a volume mount.
+ARG WHISPERX_MODEL=small
+RUN python -m scripts.preload_model ${WHISPERX_MODEL}
+
 # Copy application source
 COPY app/ ./app/
+
+# Copy and prepare entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Expose the service port
 EXPOSE 9000
@@ -56,5 +69,6 @@ EXPOSE 9000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:9000/health')" || exit 1
 
-# Run the service
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9000", "--workers", "1"]
+# Use entrypoint that verifies model before starting the server
+ENTRYPOINT ["/entrypoint.sh"]
+
