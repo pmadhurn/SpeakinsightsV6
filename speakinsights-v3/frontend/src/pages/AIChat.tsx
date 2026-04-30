@@ -14,7 +14,7 @@ import {
 import GlassButton from '@/components/ui/GlassButton';
 import ChatMessage from '@/components/chat/ChatMessage';
 import { useChatStream } from '@/hooks/useChatStream';
-import { chat, models as modelsApi, meetings as meetingsApi } from '@/services/api';
+import { chat, models as modelsApi, meetings as meetingsApi, llmSettings } from '@/services/api';
 import { useUIStore } from '@/stores/uiStore';
 import { formatRelativeTime } from '@/utils/formatTime';
 import type { ChatSource } from '@/types/chat';
@@ -40,7 +40,7 @@ export default function AIChat() {
   const [message, setMessage] = useState('');
   const [useRag, setUseRag] = useState(false);
   const [selectedModel, setSelectedModel] = useState('');
-  const [installedModels, setInstalledModels] = useState<{ name: string }[]>([]);
+  const [installedModels, setInstalledModels] = useState<{ name: string; displayName?: string }[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
   const [messages, setMessages] = useState<LocalMessage[]>([]);
@@ -67,20 +67,52 @@ export default function AIChat() {
   useEffect(() => {
     const init = async () => {
       try {
-        const [modelsData, sessionsData] = await Promise.all([
+        const [modelsData, sessionsData, llmData, openrouterModelsData] = await Promise.all([
           modelsApi.list().catch(() => ({ models: [] })),
           chat.getSessions().catch(() => ({ sessions: [] })),
+          llmSettings.get().catch(() => ({ active_provider: 'ollama', openrouter: {} })),
+          llmSettings.getOpenRouterModels().catch(() => ({ models: [] })),
         ]);
-        const modelList = modelsData.models || [];
+
+        // Ollama models
+        const ollamaList = (modelsData.models || []).filter(
+          (m: { name: string }) => !m.name.includes('embed') && !m.name.includes('nomic'),
+        );
+
+        // OpenRouter models — map to same { name } shape
+        const orModels = (openrouterModelsData.models || []).map((m: { id: string; name: string }) => ({
+          name: m.id,
+          displayName: m.name,
+        }));
+
+        // Merge: if OpenRouter is active, show those first, then Ollama
+        const activeProvider = (llmData as any).active_provider || 'ollama';
+        let modelList: { name: string; displayName?: string }[];
+        if (activeProvider === 'openrouter' && orModels.length > 0) {
+          modelList = [...orModels, ...ollamaList.map((m: { name: string }) => ({ name: m.name }))];
+        } else {
+          modelList = ollamaList.map((m: { name: string }) => ({ name: m.name }));
+        }
+
         setInstalledModels(modelList);
         const sessionsList = sessionsData.sessions || sessionsData || [];
         setSessions(Array.isArray(sessionsList) ? sessionsList : []);
 
-        const defaultExists = modelList.some((m: { name: string }) => m.name === defaultModel);
-        if (defaultExists) {
-          setSelectedModel(defaultModel);
-        } else if (modelList.length > 0) {
-          setSelectedModel(modelList[0].name);
+        // Set default model — prefer OpenRouter configured model if active
+        if (activeProvider === 'openrouter') {
+          const orConfiguredModel = (llmData as any).openrouter?.model;
+          if (orConfiguredModel && modelList.some((m) => m.name === orConfiguredModel)) {
+            setSelectedModel(orConfiguredModel);
+          } else if (modelList.length > 0) {
+            setSelectedModel(modelList[0].name);
+          }
+        } else {
+          const defaultExists = modelList.some((m) => m.name === defaultModel);
+          if (defaultExists) {
+            setSelectedModel(defaultModel);
+          } else if (modelList.length > 0) {
+            setSelectedModel(modelList[0].name);
+          }
         }
       } catch {}
 
@@ -385,7 +417,7 @@ export default function AIChat() {
             >
               {installedModels.map((m) => (
                 <option key={m.name} value={m.name} className="bg-[#0a0c10] font-sans text-left">
-                  CPU Output: {m.name}
+                  {m.displayName || m.name}
                 </option>
               ))}
               {installedModels.length === 0 && (
