@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     DEFAULT_LANGUAGE: str = "auto"
     WHISPERX_CHUNK_SECONDS: int = 20
 
+    # Clerk authentication
+    CLERK_PUBLISHABLE_KEY: str = ""  # pk_test_… / pk_live_…
+    CLERK_SECRET_KEY: str = ""       # sk_test_… / sk_live_…
+    CLERK_ISSUER: str = ""           # optional override, e.g. https://clerk.<sub>.accounts.dev
+    AUTH_ENABLED: bool = True       # master switch; False keeps everything public (demo mode)
+
     model_config = {
         "env_file": ".env",
         "case_sensitive": True,

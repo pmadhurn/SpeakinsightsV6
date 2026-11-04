@@ -12,8 +12,10 @@ from app.models.task import Task
 from app.models.embedding import TranscriptEmbedding
 from app.models.chat import ChatMessage
 from app.models.calendar_export import CalendarExport
+from app.models.user import User
 
 __all__ = [
+    "User",
     "Meeting",
     "Participant",
     "TranscriptionSegment",

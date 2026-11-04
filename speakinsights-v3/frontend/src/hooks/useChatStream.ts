@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import type { ChatSource } from '@/types/chat';
+import { getApiAuthToken } from '@/services/authToken';
 
 interface StreamParams {
   message: string;
@@ -48,9 +49,16 @@ export function useChatStream() {
           body.meeting_ids = params.meeting_ids;
         }
 
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        // /api/chat/stream requires the signed-in user's Clerk session token
+        const token = getApiAuthToken();
+        if (token) headers.Authorization = `Bearer ${token}`;
+
         const response = await fetch('/api/chat/stream', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(body),
           signal: controller.signal,
         });

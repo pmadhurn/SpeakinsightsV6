@@ -14,8 +14,10 @@ from app.api.routes.chat import router as chat_router
 from app.api.routes.models import router as models_router
 from app.api.routes.llm_settings import router as llm_settings_router
 from app.api.routes.upload import router as upload_router
+from app.api.routes.users import router as users_router
 
 __all__ = [
+    "users_router",
     "health_router",
     "meetings_router",
     "transcriptions_router",
@@ -39,3 +41,4 @@ __all__ = [
 # models_router         → /api/models    (Ollama model management)
 # llm_settings_router   → /api/llm       (LLM provider settings)
 # upload_router         → /api/upload    (Meeting file upload)
+# users_router          → /api/users     (Clerk profile + per-user data stats)

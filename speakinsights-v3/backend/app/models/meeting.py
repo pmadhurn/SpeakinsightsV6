@@ -4,7 +4,7 @@ SpeakInsights v3 — Meeting Model
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Text, DateTime, Enum as SAEnum, Integer
+from sqlalchemy import Column, String, Text, DateTime, Enum as SAEnum, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
@@ -27,6 +27,7 @@ class Meeting(Base):
     )
     host_name = Column(String(100), nullable=False)
     host_participant_id = Column(UUID(as_uuid=True), nullable=True)
+    host_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     livekit_room_name = Column(String(255), nullable=True)
     max_participants = Column(Integer, default=20)
     settings = Column(JSONB, default=dict)
@@ -45,3 +46,4 @@ class Meeting(Base):
     transcript_embeddings = relationship("TranscriptEmbedding", back_populates="meeting", cascade="all, delete-orphan")
     chat_messages = relationship("ChatMessage", back_populates="meeting", cascade="all, delete-orphan")
     calendar_exports = relationship("CalendarExport", back_populates="meeting", cascade="all, delete-orphan")
+    host_user = relationship("User", back_populates="hosted_meetings", foreign_keys=[host_user_id])

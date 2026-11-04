@@ -14,6 +14,9 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import GlassNavbar from '@/components/ui/GlassNavbar';
 import Loader from '@/components/ui/Loader';
+import { AuthBridge, clerkAuthEnabled } from '@/auth/clerkBridge';
+import { ProtectedRoute } from '@/auth/ProtectedRoute';
+import { SignInPage, SignUpPage } from '@/pages/AuthPages';
 
 // Lazy-load pages for better initial bundle size
 const Landing = lazy(() => import('@/pages/Landing'));
@@ -26,6 +29,7 @@ const AIChat = lazy(() => import('@/pages/AIChat'));
 const ModelManager = lazy(() => import('@/pages/ModelManager'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const Transcription = lazy(() => import('@/pages/Transcription'));
+const Account = lazy(() => import('@/pages/Account'));
 
 export default function App() {
   const location = useLocation();
@@ -40,6 +44,9 @@ export default function App() {
       <div className="orb orb-2" aria-hidden="true" />
       <div className="orb orb-3" aria-hidden="true" />
 
+      {/* ── Clerk session → axios token sync ── */}
+      {clerkAuthEnabled && <AuthBridge />}
+
       {/* ── Navigation (hidden during meetings for immersive UX) ── */}
       {!isInMeeting && <GlassNavbar />}
 
@@ -52,16 +59,22 @@ export default function App() {
         }
       >
         <Routes>
+          {/* Public: guest flows stay open (join via shareable code) */}
           <Route path="/" element={<Landing />} />
-          <Route path="/create" element={<CreateMeeting />} />
           <Route path="/join/:code" element={<JoinMeeting />} />
           <Route path="/meeting/:id" element={<MeetingRoom />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/meeting/:id/review" element={<MeetingReview />} />
-          <Route path="/meeting/:id/transcript" element={<Transcription />} />
-          <Route path="/chat" element={<AIChat />} />
-          <Route path="/models" element={<ModelManager />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/sign-in" element={<SignInPage />} />
+          <Route path="/sign-up" element={<SignUpPage />} />
+
+          {/* Owner-only: session required when Clerk is enabled */}
+          <Route path="/create" element={<ProtectedRoute><CreateMeeting /></ProtectedRoute>} />
+          <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+          <Route path="/meeting/:id/review" element={<ProtectedRoute><MeetingReview /></ProtectedRoute>} />
+          <Route path="/meeting/:id/transcript" element={<ProtectedRoute><Transcription /></ProtectedRoute>} />
+          <Route path="/chat" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
+          <Route path="/models" element={<ProtectedRoute><ModelManager /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         </Routes>
       </Suspense>
 

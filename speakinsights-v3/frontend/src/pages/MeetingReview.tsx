@@ -62,7 +62,6 @@ export default function MeetingReview() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [sentiment, setSentiment] = useState<SentimentData | null>(null);
   const [recordingUrl, setRecordingUrl] = useState<string | undefined>();
-  const [downloadUrl, setDownloadUrl] = useState<string | undefined>();
 
   // UI state
   const [loading, setLoading] = useState(true);
@@ -93,15 +92,19 @@ export default function MeetingReview() {
       if (results[2].status === 'fulfilled') setTasks(results[2].value);
       if (results[3].status === 'fulfilled') setSentiment(results[3].value);
 
-      // Only set recording URL if files actually exist on disk
+      // Only load the recording if files actually exist on disk.
+      // The composite endpoint requires the host's Authorization header,
+      // so we fetch it as an authenticated blob instead of a plain <video src>.
       if (results[4].status === 'fulfilled') {
         const recData = results[4].value;
         const hasComposite =
           (recData?.composite?.length > 0) ||
           (recData?.disk_files?.length > 0);
         if (hasComposite) {
-          setRecordingUrl(`/api/recordings/${id}/composite`);
-          setDownloadUrl(`/api/recordings/${id}/download`);
+          recordings
+            .getCompositeBlob(id)
+            .then((blob) => setRecordingUrl(URL.createObjectURL(blob)))
+            .catch(() => glassToast.error('Could not load recording playback'));
         }
       }
     } catch {
@@ -180,9 +183,20 @@ export default function MeetingReview() {
   }, [id]);
 
   // Download handlers
-  const handleDownloadRecording = useCallback(() => {
-    if (downloadUrl) window.open(downloadUrl, '_blank');
-  }, [downloadUrl]);
+  const handleDownloadRecording = useCallback(async () => {
+    if (!id) return;
+    try {
+      const blob = await recordings.getDownloadBlob(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `meeting-${id}-recording`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch {
+      glassToast.error('Failed to download recording');
+    }
+  }, [id]);
 
   const handleExportCalendar = useCallback(async () => {
     if (!id) return;

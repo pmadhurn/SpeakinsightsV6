@@ -14,6 +14,7 @@ from sqlalchemy import func, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.core.auth import get_optional_user
 from app.config import settings
 from app.core.livekit_service import livekit_service
 from app.core.post_processing import post_processing
@@ -111,13 +112,19 @@ async def _meeting_to_response(meeting: Meeting, db: AsyncSession) -> MeetingRes
 @router.post("", response_model=MeetingResponse, status_code=201)
 async def create_meeting(
     data: MeetingCreate,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new meeting room.
 
     Generates a shareable room code, creates the host participant,
-    and provisions a LiveKit room.
+    and provisions a LiveKit room. When the caller is signed in via Clerk,
+    the meeting is linked to their user account.
     """
+    user, _claims = await get_optional_user(
+        authorization=request.headers.get("Authorization"),
+        db=db,
+    )
     code = await _generate_code(db)
     room_name = f"si-room-{code}"
 
@@ -130,6 +137,7 @@ async def create_meeting(
         language=data.language,
         status="waiting",
         host_name=data.host_name,
+        host_user_id=(user.id if user else None),
         livekit_room_name=room_name,
     )
     db.add(meeting)
@@ -163,14 +171,26 @@ async def create_meeting(
 
 @router.get("", response_model=MeetingListResponse)
 async def list_meetings(
+    request: Request,
     status: str | None = Query(None, description="Filter by status"),
     search: str | None = Query(None, description="Search by title"),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
-    """List meetings with optional status filter and title search."""
+    """List meetings with optional status filter and title search.
+
+    Signed-in users see only meetings they host. Guests (no Clerk token)
+    continue to see everything — the public shared-space behaviour.
+    """
+    user, _claims = await get_optional_user(
+        authorization=request.headers.get("Authorization"),
+        db=db,
+    )
+
     query = select(Meeting)
+    if user is not None:
+        query = query.where(Meeting.host_user_id == user.id)
 
     if status:
         query = query.where(Meeting.status == status)

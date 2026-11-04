@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, History, MessageSquare, Cpu, Settings, Menu, X } from 'lucide-react';
+import { Mic, History, MessageSquare, Cpu, Settings, Menu, X, UserCircle2 } from 'lucide-react';
+
+import { NavbarAuth } from '@/auth/clerkBridge';
 import GlassButton from '../../components/ui/GlassButton'; // Kept your imported component
 import { useUIStore } from '@/stores/uiStore'; // Added your store connection
 
 const navLinks = [
   { to: '/', label: 'Dashboard', icon: Mic },
   { to: '/history', label: 'History', icon: History },
+  { to: '/account', label: 'My Data', icon: UserCircle2 },
   { to: '/chat', label: 'Chat', icon: MessageSquare },
   { to: '/models', label: 'Models', icon: Cpu },
   { to: '/settings', label: 'Settings', icon: Settings },
@@ -74,6 +77,8 @@ export default function Navbar() {
 
           {/* Desktop Right Side / Mobile Menu Toggle */}
           <div className="flex items-center gap-3">
+            {/* Clerk user avatar / sign-in button */}
+            <NavbarAuth />
             <button 
               className="md:hidden p-2 text-white/60 hover:text-white transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

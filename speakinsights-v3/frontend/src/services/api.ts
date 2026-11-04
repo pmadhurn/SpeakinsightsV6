@@ -4,11 +4,22 @@ import type { TranscriptSegment, TranscriptTimeline, TranscriptSearchResult } fr
 import type { Summary, Task, SentimentData } from '@/types/summary';
 import type { ChatMessage, ChatSession, ChatRequest } from '@/types/chat';
 
+import { getApiAuthToken } from '@/services/authToken';
+
 // ─── Axios Instance ───
 const api = axios.create({
   baseURL: '/api',
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
+});
+
+// Attach the Clerk session token to every request when signed in
+api.interceptors.request.use((config) => {
+  const token = getApiAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 // Error interceptor
@@ -172,11 +183,24 @@ export const recordings = {
   getCompositeUrl: (meetingId: string) =>
     api.get<{ url: string }>(`/recordings/${meetingId}/composite`).then((r) => r.data),
 
+  // Authenticated blob fetch — the composite endpoint requires the host's
+  // Authorization header, which a plain <video src> cannot send.
+  getCompositeBlob: (meetingId: string) =>
+    api
+      .get<Blob>(`/recordings/${meetingId}/composite`, { responseType: 'blob', timeout: 300000 })
+      .then((r) => r.data),
+
   getTracks: (meetingId: string) =>
     api.get(`/recordings/${meetingId}/tracks`).then((r) => r.data),
 
   getDownloadUrl: (meetingId: string, recordingId?: string) =>
     `/api/recordings/${meetingId}/download${recordingId ? `/${recordingId}` : ''}`,
+
+  // Authenticated blob download (the endpoint requires the host's header)
+  getDownloadBlob: (meetingId: string) =>
+    api
+      .get<Blob>(`/recordings/${meetingId}/download`, { responseType: 'blob', timeout: 300000 })
+      .then((r) => r.data),
 };
 
 // ─── Calendar ───
@@ -228,6 +252,12 @@ export const llmSettings = {
 
   getOpenRouterModels: () =>
     api.get('/llm/openrouter/models').then((r) => r.data),
+};
+
+// ─── Users (per-account data) ───
+export const users = {
+  me: () =>
+    api.get('/users/me').then((r) => r.data),
 };
 
 // ─── Upload ───
